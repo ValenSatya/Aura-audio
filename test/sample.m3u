@@ -1,0 +1,9 @@
+#EXTM3U
+#EXTINF:240,Queen - Bohemian Rhapsody
+C:\Music\BohemianRhapsody.mp3
+#EXTINF:185,Lofi Girl - Chill Beats Stream
+https://stream.zeno.fm/f3wvbbqmdg8uv
+#EXTINF:213,Rick Astley - Never Gonna Give You Up
+https://www.youtube.com/watch?v=dQw4w9WgXcQ
+#EXTINF:210,Local Song In Same Folder
+local_track.flac

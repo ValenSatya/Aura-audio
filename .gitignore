@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Production builds & packaging
+dist/
+dist-electron/
+release/
+
+# Logs & debugging
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# Environment & local credentials / sessions
+.env
+.env.local
+*.local
+yt_cookies.txt
+yt_auth.json
+spotify_session.json
+spotify_yt_matches.json
+aura_users.json
+aura_session.json
+aura_playlists.json
+
+# Editor & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini

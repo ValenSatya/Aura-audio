@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+:root {
+  /* Colors per design (2).md */
+  --bg: #0B0B0C;
+  --surface: #17171A;
+  --surface-high: #1F1F23;
+  --surface-player: #121214;
+  --surface-deep: #050505;
+  --track: #34343A;
+  --text: #F4F4F0;
+  --text-muted: #8D8D93;
+  --accent: #F4F4F0;
+  --progress: #B7F161;
+  --on-accent: #0B0B0C;
+  --danger: #E07A7A;
+  --now: #6B7F94;
+  --now-dark: #20262c;
+
+  /* Neutral tonal palette (Section 8) */
+  --tonal-ink: #1A1D21;
+  --tonal-slate: #2B3038;
+  --tonal-graphite: #363B42;
+  --tonal-mist: #3A3F47;
+  --tonal-steel: #4A5059;
+  --tonal-taupe: #4A453F;
+
+  /* Radius */
+  --r-xs: 2px;
+  --r-s: 4px;
+  --r-m: 6px;
+  --r-l: 8px;
+  --r-xl: 10px;
+  --r-full: 50%;
+
+  /* Transitions */
+  --t-fast: 120ms ease-out;
+  --t-base: 200ms ease-out;
+  --t-mood: 500ms ease-in-out;
+}
+
+@property --now {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #6B7F94;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    border-color: transparent;
+  }
+
+  *:focus-visible {
+    outline: none !important;
+    box-shadow: 0 0 0 2px var(--accent) !important;
+  }
+
+  html,
+  body {
+    font-family: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    background-color: var(--bg);
+    color: var(--text);
+  }
+
+  /* Monospace font for timecodes & metrics */
+  .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-feature-settings: 'tnum';
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Custom subtle scrollbars without borders */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--surface-high);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #28282c;
+  }
+}
+
+/* EQ Slider vertical styling */
+input[type="range"].vertical-slider {
+  -webkit-appearance: slider-vertical;
+  writing-mode: bt-lr;
+  width: 24px;
+}
+
+/* Custom range styling */
+input[type="range"] {
+  accent-color: var(--accent);
+}
+
+/* Accessibility: reduce motion if user prefers */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.app-drag {
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.app-no-drag {
+  -webkit-app-region: no-drag;
+}
