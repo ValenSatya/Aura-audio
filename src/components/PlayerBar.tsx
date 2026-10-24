@@ -107,6 +107,12 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
   const sleepMenuRef = useRef<HTMLDivElement | null>(null);
 
   const progressBarRef = useRef<HTMLDivElement | null>(null);
+  const progressFillRef = useRef<HTMLDivElement | null>(null);
+  const thumbRef = useRef<HTMLDivElement | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+  const lastSyncTimeRef = useRef<number>(currentTime);
+  const lastSyncTimestampRef = useRef<number>(performance.now());
+
   const [isDragging, setIsDragging] = useState(false);
   const [dragTime, setDragTime] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
@@ -139,6 +145,55 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
       ? Math.min(100, Math.max(0, (bufferedTime / effectiveDuration) * 100))
       : 0;
 
+  // Track latest time and sync base timestamp
+  useEffect(() => {
+    lastSyncTimeRef.current = currentTime;
+    lastSyncTimestampRef.current = performance.now();
+    if (!isPlaying && !isDragging) {
+      const ratio = effectiveDuration > 0 ? Math.min(1, Math.max(0, currentTime / effectiveDuration)) : 0;
+      if (progressFillRef.current) {
+        progressFillRef.current.style.transform = `scaleX(${ratio})`;
+      }
+      if (thumbRef.current) {
+        thumbRef.current.style.left = `${(ratio * 100).toFixed(3)}%`;
+      }
+    }
+  }, [currentTime, isPlaying, isDragging, effectiveDuration]);
+
+  // Butter-smooth 60/120fps progress interpolation via requestAnimationFrame
+  useEffect(() => {
+    if (!isPlaying || isDragging || isBuffering || effectiveDuration <= 0) {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+      return;
+    }
+
+    const updateFrame = () => {
+      const elapsed = (performance.now() - lastSyncTimestampRef.current) / 1000;
+      const estimatedTime = Math.min(effectiveDuration, Math.max(0, lastSyncTimeRef.current + elapsed));
+      const ratio = effectiveDuration > 0 ? Math.min(1, Math.max(0, estimatedTime / effectiveDuration)) : 0;
+
+      if (progressFillRef.current) {
+        progressFillRef.current.style.transform = `scaleX(${ratio})`;
+      }
+      if (thumbRef.current) {
+        thumbRef.current.style.left = `${(ratio * 100).toFixed(3)}%`;
+      }
+
+      rafIdRef.current = requestAnimationFrame(updateFrame);
+    };
+
+    rafIdRef.current = requestAnimationFrame(updateFrame);
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+    };
+  }, [isPlaying, isDragging, isBuffering, effectiveDuration]);
+
   const calculateTimeFromEvent = useCallback(
     (e: MouseEvent | React.MouseEvent<HTMLDivElement>): number => {
       if (!progressBarRef.current || effectiveDuration <= 0) return 0;
@@ -164,6 +219,13 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
     setIsDragging(true);
     const newTime = calculateTimeFromEvent(e);
     setDragTime(newTime);
+    const ratio = Math.min(1, Math.max(0, newTime / effectiveDuration));
+    if (progressFillRef.current) {
+      progressFillRef.current.style.transform = `scaleX(${ratio})`;
+    }
+    if (thumbRef.current) {
+      thumbRef.current.style.left = `${(ratio * 100).toFixed(3)}%`;
+    }
   };
 
   useEffect(() => {
@@ -172,12 +234,21 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
     const handleMouseMove = (e: MouseEvent) => {
       const newTime = calculateTimeFromEvent(e);
       setDragTime(newTime);
+      const ratio = effectiveDuration > 0 ? Math.min(1, Math.max(0, newTime / effectiveDuration)) : 0;
+      if (progressFillRef.current) {
+        progressFillRef.current.style.transform = `scaleX(${ratio})`;
+      }
+      if (thumbRef.current) {
+        thumbRef.current.style.left = `${(ratio * 100).toFixed(3)}%`;
+      }
     };
 
     const handleMouseUp = (e: MouseEvent) => {
       const finalTime = calculateTimeFromEvent(e);
       setIsDragging(false);
       onSeek(finalTime);
+      lastSyncTimeRef.current = finalTime;
+      lastSyncTimestampRef.current = performance.now();
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -187,7 +258,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, calculateTimeFromEvent, onSeek]);
+  }, [isDragging, calculateTimeFromEvent, onSeek, effectiveDuration]);
 
   // Volume Bar Dragging
   const volumeBarRef = useRef<HTMLDivElement | null>(null);
@@ -240,14 +311,14 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
 
   return (
     <footer
-      className="w-full h-[88px] bg-[#121214] px-7 grid grid-cols-[1fr_1.4fr_1fr] items-center gap-6 z-50 select-none flex-shrink-0 relative"
+      className="w-full h-[84px] px-6 rounded-[20px] bg-[#121215]/95 backdrop-blur-2xl border border-white/[0.08] shadow-[0_16px_48px_rgba(0,0,0,0.85)] grid grid-cols-[1fr_1.5fr_1fr] items-center gap-6 z-50 select-none flex-shrink-0 relative overflow-hidden"
       aria-label="Pemutar Audio"
     >
-      {/* 3.7 KIRI: cover 56x56 radius 6px, judul 14px, artis 12px --text-muted, ikon suka 20px tepat di kanan teks (jarak 12px) */}
-      <div className="flex items-center gap-3.5 min-w-0">
+      {/* Juxtopposed KIRI: cover 52x52 rounded-[10px], judul 13.5px font-semibold, artis 11.5px, heart button */}
+      <div className="flex items-center gap-3.5 min-w-0 relative z-10">
         <div
           onClick={onToggleOverview}
-          className="relative w-14 h-14 rounded-[6px] overflow-hidden flex-shrink-0 bg-gradient-to-br from-[var(--now)] to-[var(--now-dark)] flex items-center justify-center cursor-pointer group"
+          className="relative w-13 h-13 rounded-[10px] overflow-hidden flex-shrink-0 bg-zinc-800 flex items-center justify-center cursor-pointer group shadow-md border border-white/5"
           title="Buka tampilan sedang diputar"
         >
           {currentTrack && (officialCover || currentTrack.thumbnailUrl) ? (
@@ -257,7 +328,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
               className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
             />
           ) : (
-            <Music size={22} strokeWidth={1.8} className="text-[#8D8D93]" />
+            <Music size={20} strokeWidth={1.8} className="text-zinc-400" />
           )}
         </div>
 
@@ -265,57 +336,57 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
           <div className="flex items-center gap-2 min-w-0">
             <p
               onClick={onToggleOverview}
-              className="text-[14px] font-normal text-[#F4F4F0] truncate hover:text-white transition-colors cursor-pointer leading-tight"
+              className="text-[13.5px] font-semibold text-white tracking-tight truncate hover:underline transition-colors cursor-pointer leading-tight"
               title={currentTrack ? currentTrack.title : undefined}
             >
               {currentTrack ? currentTrack.title : 'Tidak ada lagu'}
             </p>
             {currentTrack?.isOffline && (
-              <span title="Offline" className="inline-flex items-center flex-shrink-0 text-[#F4F4F0]">
-                <CheckCircle2 size={12} strokeWidth={2} />
+              <span title="Offline" className="inline-flex items-center flex-shrink-0 text-zinc-400">
+                <CheckCircle2 size={12} strokeWidth={2.2} />
               </span>
             )}
           </div>
           <p
             onClick={onToggleOverview}
-            className="text-[12px] font-normal text-[#8D8D93] truncate hover:text-[#F4F4F0] transition-colors cursor-pointer mt-0.5 leading-tight"
+            className="text-[11.5px] font-medium text-zinc-400 truncate hover:text-zinc-200 transition-colors cursor-pointer mt-0.5 leading-tight"
             title={currentTrack ? currentTrack.artist : undefined}
           >
             {currentTrack ? currentTrack.artist : 'Pilih lagu untuk memutar'}
           </p>
         </div>
 
-        {/* Tombol suka tepat di samping kanan teks (jarak 12px) */}
+        {/* Tombol suka tepat di samping kanan teks */}
         {currentTrack && (
           <button
             onClick={() => setIsLiked((prev) => !prev)}
             aria-label={isLiked ? 'Batal Suka' : 'Suka'}
             title={isLiked ? 'Batal Suka' : 'Suka'}
-            className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors flex-shrink-0 cursor-pointer ml-1 ${
-              isLiked ? 'text-[#F4F4F0]' : 'text-[#8D8D93] hover:text-[#F4F4F0] hover:bg-[#1F1F23]'
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all flex-shrink-0 cursor-pointer ml-1 active:scale-90 hover:scale-110 ${
+              isLiked ? 'text-red-500' : 'text-zinc-400 hover:text-white hover:bg-white/10'
             }`}
           >
-            <Heart size={20} strokeWidth={1.8} className={isLiked ? 'fill-current' : ''} />
+            <Heart size={18} strokeWidth={2} className={isLiked ? 'fill-current' : ''} />
           </button>
         )}
       </div>
 
-      {/* 3.7 TENGAH: kontrol 18px jarak (Acak, Sebelumnya, Putar/Jeda, Berikutnya, Ulangi) + progress */}
-      <div className="flex flex-col items-center gap-1.5 w-full">
-        {/* Baris kontrol: jarak 18px */}
-        <div className="flex items-center gap-[18px]">
+      {/* Juxtopposed TENGAH: kontrol playback & timeline presisi */}
+      <div className="flex flex-col items-center gap-1.5 w-full relative z-10">
+        {/* Baris kontrol */}
+        <div className="flex items-center gap-3">
           {/* Acak */}
           <button
             onClick={onToggleShuffle}
             aria-label={`Acak ${isShuffle ? 'Aktif' : 'Nonaktif'}`}
             title={`Acak: ${isShuffle ? 'Aktif' : 'Nonaktif'}`}
-            className={`w-11 h-11 rounded-[8px] flex items-center justify-center transition-colors cursor-pointer ${
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
               isShuffle
-                ? 'text-[#F4F4F0] bg-[#1F1F23]'
-                : 'text-[#8D8D93] hover:text-[#F4F4F0] hover:bg-[#1F1F23]'
+                ? 'text-white bg-white/15 border border-white/20'
+                : 'text-zinc-400 hover:text-white hover:bg-white/10'
             }`}
           >
-            <Shuffle size={20} strokeWidth={1.8} />
+            <Shuffle size={16} strokeWidth={2} />
           </button>
 
           {/* Sebelumnya */}
@@ -324,29 +395,29 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
             disabled={!currentTrack}
             aria-label="Lagu Sebelumnya"
             title="Sebelumnya"
-            className="w-11 h-11 rounded-[8px] flex items-center justify-center text-[#8D8D93] hover:text-[#F4F4F0] hover:bg-[#1F1F23] disabled:opacity-40 disabled:hover:bg-transparent transition-colors cursor-pointer"
+            className="w-9 h-9 rounded-full flex items-center justify-center text-zinc-300 hover:text-white hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-transparent transition-all cursor-pointer"
           >
-            <SkipBack size={20} strokeWidth={1.8} className="fill-current" />
+            <SkipBack size={18} strokeWidth={2} className="fill-current" />
           </button>
 
-          {/* Putar / Jeda: lingkaran 48px, latar --accent #F4F4F0, ikon --on-accent #0B0B0C */}
+          {/* Putar / Jeda: lingkaran kontras tinggi putih solid dengan shadow halus, TANPA glow */}
           <button
             onClick={onTogglePlay}
             disabled={!currentTrack}
             aria-label={isPlaying ? 'Jeda' : 'Putar'}
             title={isPlaying ? 'Jeda (Spasi)' : 'Putar (Spasi)'}
-            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
               currentTrack
-                ? 'bg-[#F4F4F0] hover:brightness-95 active:scale-95 text-[#0B0B0C]'
-                : 'bg-[#1F1F23] text-[#8D8D93] cursor-not-allowed opacity-40'
+                ? 'bg-white hover:bg-zinc-100 hover:scale-105 active:scale-95 text-black shadow-md border border-white/20'
+                : 'bg-white/10 text-zinc-600 cursor-not-allowed opacity-40'
             }`}
           >
             {isBuffering ? (
-              <Loader2 size={20} strokeWidth={1.8} className="animate-spin text-[#0B0B0C]" />
+              <Loader2 size={18} strokeWidth={2} className="animate-spin text-black" />
             ) : isPlaying ? (
-              <Pause size={20} strokeWidth={1.8} className="fill-current" />
+              <Pause size={18} strokeWidth={2.2} className="fill-current" />
             ) : (
-              <Play size={20} strokeWidth={1.8} className="fill-current ml-0.5" />
+              <Play size={18} strokeWidth={2.2} className="fill-current ml-0.5" />
             )}
           </button>
 
@@ -356,9 +427,9 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
             disabled={!currentTrack}
             aria-label="Lagu Berikutnya"
             title="Berikutnya"
-            className="w-11 h-11 rounded-[8px] flex items-center justify-center text-[#8D8D93] hover:text-[#F4F4F0] hover:bg-[#1F1F23] disabled:opacity-40 disabled:hover:bg-transparent transition-colors cursor-pointer"
+            className="w-9 h-9 rounded-full flex items-center justify-center text-zinc-300 hover:text-white hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-transparent transition-all cursor-pointer"
           >
-            <SkipForward size={20} strokeWidth={1.8} className="fill-current" />
+            <SkipForward size={18} strokeWidth={2} className="fill-current" />
           </button>
 
           {/* Ulangi */}
@@ -366,21 +437,21 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
             onClick={onToggleRepeat}
             aria-label={`Ulangi: ${repeatMode}`}
             title={`Ulangi: ${repeatMode === 'one' ? 'Satu Lagu' : repeatMode === 'all' ? 'Semua' : 'Nonaktif'}`}
-            className={`w-11 h-11 rounded-[8px] flex items-center justify-center transition-colors cursor-pointer ${
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
               repeatMode !== 'off'
-                ? 'text-[#F4F4F0] bg-[#1F1F23]'
-                : 'text-[#8D8D93] hover:text-[#F4F4F0] hover:bg-[#1F1F23]'
+                ? 'text-white bg-white/15 border border-white/20'
+                : 'text-zinc-400 hover:text-white hover:bg-white/10'
             }`}
           >
             {repeatMode === 'one' ? (
-              <Repeat1 size={20} strokeWidth={1.8} />
+              <Repeat1 size={16} strokeWidth={2} />
             ) : (
-              <Repeat size={20} strokeWidth={1.8} />
+              <Repeat size={16} strokeWidth={2} />
             )}
           </button>
         </div>
 
-        {/* Progress Bar: waktu 11px micro, lintasan 4px tinggi (--track #34343A, radius 2px), isi --progress #B7F161 */}
+        {/* Progress Bar: waktu 11px micro, lintasan 4px tinggi, isi Electric Blue #3B82F6 */}
         <div className="flex items-center gap-3 w-full max-w-lg">
           <span className="text-[11px] font-mono text-[#8D8D93] w-10 text-right select-none">
             {formatTime(displayTime)}
@@ -399,53 +470,55 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
             {/* Hover preview tooltip */}
             {isHovering && !isDragging && effectiveDuration > 0 && (
               <div
-                className="absolute -top-7 -translate-x-1/2 bg-[#1F1F23] text-[#F4F4F0] text-[10px] font-mono py-0.5 px-2 rounded-[4px] shadow-lg pointer-events-none z-50 whitespace-nowrap"
+                className="absolute -top-7 -translate-x-1/2 bg-[#222228] text-white text-[10px] font-mono py-0.5 px-2 rounded-[6px] border border-white/10 shadow-lg pointer-events-none z-50 whitespace-nowrap"
                 style={{ left: `${Math.max(4, Math.min(96, hoverRatio * 100))}%` }}
               >
                 {formatTime(hoverTime)}
               </div>
             )}
 
-            {/* Lintasan 4px tinggi, radius 2px, latar --track #34343A */}
-            <div className="w-full h-1 bg-[#34343A] rounded-[2px] overflow-hidden relative">
+            {/* Lintasan tinggi responsif ke hover */}
+            <div className="w-full h-1 group-hover:h-1.5 bg-zinc-800 rounded-full overflow-hidden relative transition-all duration-150">
               {/* Buffer */}
               <div
-                className="absolute top-0 left-0 h-full bg-[#46464E] rounded-[2px] transition-all duration-200"
+                className="absolute top-0 left-0 h-full bg-zinc-700/60 rounded-full transition-all duration-200"
                 style={{ width: `${bufferedPercent}%` }}
               />
-              {/* Isi: --progress #B7F161 (Hijau neon lembut, hanya untuk progress lagu) */}
+              {/* Isi: Electric Blue #3B82F6 (GPU composite layer 60/120fps) */}
               <div
-                className="absolute top-0 left-0 h-full bg-[#B7F161] rounded-[2px] transition-all duration-75"
-                style={{ width: `${progressPercent}%` }}
+                ref={progressFillRef}
+                className="absolute top-0 left-0 w-full h-full bg-blue-500 group-hover:bg-blue-400 rounded-full origin-left will-change-transform transition-colors duration-150"
+                style={{ transform: `scaleX(${progressPercent / 100})` }}
               />
             </div>
 
-            {/* Thumb slider 12px bulat --text #F4F4F0 (muncul saat hover atau drag) */}
+            {/* Thumb slider 12px bulat bersih */}
             <div
-              className={`absolute w-3 h-3 bg-[#F4F4F0] rounded-full shadow pointer-events-none -translate-x-1/2 transition-opacity duration-120 ${
+              ref={thumbRef}
+              className={`absolute w-3 h-3 bg-white rounded-full shadow-md pointer-events-none -translate-x-1/2 transition-opacity duration-120 will-change-[left] ${
                 isDragging || isHovering ? 'opacity-100' : 'opacity-0'
               }`}
               style={{ left: `${progressPercent}%` }}
             />
           </div>
 
-          <span className="text-[11px] font-mono text-[#8D8D93] w-10 text-left select-none">
+          <span className="text-[11px] font-mono text-zinc-400 w-10 text-left select-none tabular-nums">
             {formatTime(effectiveDuration)}
           </span>
         </div>
       </div>
 
-      {/* 3.7 KANAN: ikon volume 20px, slider 110x4px (isi --text #F4F4F0), antrean, perangkat/EQ, dsb. */}
-      <div className="flex items-center justify-end gap-1.5 min-w-0">
+      {/* Juxtopposed KANAN: ikon volume, slider, antrean, EQ, dsb. */}
+      <div className="flex items-center justify-end gap-1 min-w-0 relative z-10">
         {/* Floating Mini Player */}
         {onToggleMiniPlayer && (
           <button
             onClick={onToggleMiniPlayer}
             aria-label="Mini Player"
             title="Mini Player Melayang"
-            className="w-11 h-11 rounded-[8px] flex items-center justify-center text-[#8D8D93] hover:text-[#F4F4F0] hover:bg-[#1F1F23] transition-colors cursor-pointer"
+            className="w-9 h-9 rounded-[10px] flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
           >
-            <PictureInPicture2 size={20} strokeWidth={1.8} />
+            <PictureInPicture2 size={18} strokeWidth={1.8} />
           </button>
         )}
 
@@ -456,24 +529,24 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
               onClick={() => setIsSleepTimerMenuOpen((prev) => !prev)}
               aria-label="Pengatur Waktu Tidur"
               title={sleepTimerActive ? `Timer Tidur Aktif (${sleepTimerFormatted})` : 'Timer Tidur'}
-              className={`h-11 px-3 rounded-[8px] flex items-center gap-1.5 transition-colors cursor-pointer ${
+              className={`h-9 px-2.5 rounded-[10px] flex items-center gap-1.5 transition-all cursor-pointer ${
                 sleepTimerActive
-                  ? 'bg-[#1F1F23] text-[#F4F4F0]'
-                  : 'text-[#8D8D93] hover:text-[#F4F4F0] hover:bg-[#1F1F23]'
+                  ? 'bg-white/15 border border-white/20 text-white font-medium'
+                  : 'text-zinc-400 hover:text-white hover:bg-white/10'
               }`}
             >
-              <Moon size={20} strokeWidth={1.8} className={sleepTimerActive ? 'fill-current' : ''} />
+              <Moon size={18} strokeWidth={1.8} className={sleepTimerActive ? 'fill-current' : ''} />
               {sleepTimerActive && (
-                <span className="font-mono text-xs text-[#F4F4F0]">{sleepTimerFormatted}</span>
+                <span className="font-mono text-xs text-white">{sleepTimerFormatted}</span>
               )}
             </button>
 
             {isSleepTimerMenuOpen && (
               <div
                 ref={sleepMenuRef}
-                className="absolute bottom-full mb-2 right-0 w-44 bg-[#1F1F23] rounded-[8px] shadow-[0_12px_32px_rgba(0,0,0,0.5)] p-2 z-50 text-xs animate-in fade-in duration-120"
+                className="absolute bottom-full mb-3 right-0 w-44 bg-[#18181D] border border-white/[0.08] rounded-[16px] shadow-[0_16px_36px_rgba(0,0,0,0.8)] p-2 z-50 text-xs animate-in fade-in duration-120"
               >
-                <div className="px-3 py-1.5 text-[11px] font-normal text-[#8D8D93] uppercase tracking-wider mb-1">
+                <div className="px-3 py-1.5 text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-1">
                   Waktu Tidur
                 </div>
                 {[
@@ -489,7 +562,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
                       onSetSleepTimer(item.mode);
                       setIsSleepTimerMenuOpen(false);
                     }}
-                    className="w-full text-left px-3 py-2 rounded-[6px] text-[#F4F4F0] hover:bg-[#17171A] transition-colors"
+                    className="w-full text-left px-3 py-2 rounded-[10px] text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
                   >
                     {item.label}
                   </button>
@@ -500,7 +573,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
                       onCancelSleepTimer();
                       setIsSleepTimerMenuOpen(false);
                     }}
-                    className="w-full text-left px-3 py-2 rounded-[6px] text-[#E07A7A] hover:bg-[#17171A] transition-colors mt-1"
+                    className="w-full text-left px-3 py-2 rounded-[10px] text-red-400 hover:bg-white/10 transition-colors mt-1"
                   >
                     Matikan Timer
                   </button>
@@ -516,13 +589,13 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
             onClick={onToggleOverview}
             aria-label="Panel Sedang Diputar"
             title="Panel Sedang Diputar"
-            className={`w-11 h-11 rounded-[8px] flex items-center justify-center transition-colors cursor-pointer ${
+            className={`w-9 h-9 rounded-[10px] flex items-center justify-center transition-all cursor-pointer ${
               isOverviewOpen
-                ? 'bg-[#1F1F23] text-[#F4F4F0]'
-                : 'text-[#8D8D93] hover:text-[#F4F4F0] hover:bg-[#1F1F23]'
+                ? 'bg-white/15 text-white'
+                : 'text-zinc-400 hover:text-white hover:bg-white/10'
             }`}
           >
-            <Radio size={20} strokeWidth={1.8} />
+            <Radio size={18} strokeWidth={1.8} />
           </button>
         )}
 
@@ -532,13 +605,13 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
             onClick={onToggleQueue}
             aria-label="Antrean"
             title="Antrean Pemutar"
-            className={`w-11 h-11 rounded-[8px] flex items-center justify-center transition-colors cursor-pointer ${
+            className={`w-9 h-9 rounded-[10px] flex items-center justify-center transition-all cursor-pointer ${
               isQueueOpen
-                ? 'bg-[#1F1F23] text-[#F4F4F0]'
-                : 'text-[#8D8D93] hover:text-[#F4F4F0] hover:bg-[#1F1F23]'
+                ? 'bg-white/15 text-white'
+                : 'text-zinc-400 hover:text-white hover:bg-white/10'
             }`}
           >
-            <ListMusic size={20} strokeWidth={1.8} />
+            <ListMusic size={18} strokeWidth={1.8} />
           </button>
         )}
 
@@ -547,19 +620,19 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
           onClick={onToggleEqualizer}
           aria-label="Equalizer"
           title="Equalizer 8-Band"
-          className={`h-11 px-3.5 rounded-[8px] flex items-center gap-1.5 text-xs font-normal transition-colors cursor-pointer ${
+          className={`h-9 px-2.5 rounded-[10px] flex items-center gap-1.5 text-xs font-medium transition-all cursor-pointer ${
             isEqualizerOpen
-              ? 'bg-[#F4F4F0] text-[#0B0B0C]'
-              : 'text-[#8D8D93] hover:text-[#F4F4F0] hover:bg-[#1F1F23]'
+              ? 'bg-white text-black font-semibold'
+              : 'text-zinc-400 hover:text-white hover:bg-white/10'
           }`}
         >
-          <Sliders size={18} strokeWidth={1.8} />
+          <Sliders size={16} strokeWidth={1.8} />
           <span>EQ</span>
         </button>
 
-        {/* Volume: ikon 20px, slider 110x4px (isi --text #F4F4F0, lintasan --track #34343A) */}
+        {/* Volume: ikon 18px, slider 96px */}
         <div
-          className="flex items-center gap-2 pl-2"
+          className="flex items-center gap-1.5 pl-2"
           onWheel={(e) => {
             e.preventDefault();
             const delta = e.deltaY < 0 ? 0.05 : -0.05;
@@ -570,30 +643,30 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
             onClick={onToggleMute}
             aria-label={isMuted ? 'Bunyikan' : 'Bisukan'}
             title={isMuted ? 'Bunyikan' : 'Bisukan'}
-            className="p-1 rounded-[6px] text-[#8D8D93] hover:text-[#F4F4F0] transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           >
             {effectiveVolume === 0 ? (
-              <VolumeX size={20} strokeWidth={1.8} />
+              <VolumeX size={18} strokeWidth={1.8} />
             ) : effectiveVolume < 0.5 ? (
-              <Volume1 size={20} strokeWidth={1.8} />
+              <Volume1 size={18} strokeWidth={1.8} />
             ) : (
-              <Volume2 size={20} strokeWidth={1.8} />
+              <Volume2 size={18} strokeWidth={1.8} />
             )}
           </button>
 
           <div
             ref={volumeBarRef}
             onMouseDown={handleVolMouseDown}
-            className="w-[110px] h-4 flex items-center group cursor-pointer relative"
+            className="w-[96px] h-3.5 flex items-center group cursor-pointer relative"
           >
-            <div className="w-full h-1 bg-[#34343A] rounded-[2px] overflow-hidden">
+            <div className="w-full h-1 group-hover:h-1.5 bg-zinc-800 rounded-full overflow-hidden transition-all duration-150">
               <div
-                className="h-full bg-[#F4F4F0] rounded-[2px] transition-all duration-75"
+                className={`h-full bg-white rounded-full ${isDraggingVol ? '' : 'transition-all duration-75'}`}
                 style={{ width: `${effectiveVolume * 100}%` }}
               />
             </div>
             <div
-              className={`absolute w-3 h-3 bg-[#F4F4F0] rounded-full shadow pointer-events-none -translate-x-1/2 transition-opacity duration-120 ${
+              className={`absolute w-2.5 h-2.5 bg-white rounded-full shadow pointer-events-none -translate-x-1/2 transition-opacity duration-120 ${
                 isDraggingVol ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
               }`}
               style={{ left: `${effectiveVolume * 100}%` }}

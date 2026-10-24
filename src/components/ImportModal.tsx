@@ -168,7 +168,9 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         parsed = await window.electronAPI.parseM3UFile(chosenPath);
       }
 
-      if (!parsed || !parsed.tracks || parsed.tracks.length === 0) {
+      const parsedTracks: any[] = Array.isArray(parsed) ? parsed : (parsed?.tracks || []);
+
+      if (!parsedTracks || parsedTracks.length === 0) {
         setPlaylistError('Tidak ditemukan lagu yang valid di dalam file tersebut.');
         return;
       }
@@ -179,7 +181,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       setPlaylistResult({
         type: isCsv ? 'csv' : 'm3u',
         fileName,
-        tracks: parsed.tracks,
+        tracks: parsedTracks,
       });
     } catch (err: any) {
       setPlaylistError(err.message || 'Gagal memproses file playlist.');
@@ -191,17 +193,23 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   const handleImportPlaylistTracks = () => {
     if (!playlistResult || playlistResult.tracks.length === 0) return;
 
-    const tracksToImport: Track[] = playlistResult.tracks.map((t, idx) => ({
-      id: `imported_${Date.now()}_${idx}`,
-      title: t.title || 'Unknown Title',
-      artist: t.artist || 'Unknown Artist',
-      duration: t.duration || 0,
-      sourceType: playlistResult.type === 'csv' ? 'youtube' : 'm3u',
-      url: t.url || t.filePath || '',
-      localPath: t.filePath,
-      isOffline: Boolean(t.filePath),
-      dateAdded: Date.now(),
-    }));
+    const tracksToImport: Track[] = playlistResult.tracks.map((t: any, idx) => {
+      const detectedSource = t.sourceType || (playlistResult.type === 'csv' ? 'youtube' : 'm3u');
+      const isLocal = detectedSource === 'local' || Boolean(t.filePath);
+      const trackUrl = t.url || t.filePath || '';
+      return {
+        id: `imported_${Date.now()}_${idx}`,
+        title: t.title || 'Unknown Title',
+        artist: t.artist || 'Unknown Artist',
+        album: t.album,
+        duration: t.duration || 0,
+        sourceType: detectedSource,
+        url: trackUrl,
+        localPath: t.filePath || (isLocal ? trackUrl : undefined),
+        isOffline: isLocal,
+        dateAdded: Date.now(),
+      };
+    });
 
     if (createAsNewPlaylist && onImportAsPlaylist) {
       onImportAsPlaylist(targetPlaylistName.trim() || 'Playlist Baru', tracksToImport, {
@@ -770,7 +778,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                   </div>
                   {spotifyAuthStatus.isLoggedIn ? (
                     <span className="text-[11px] text-[#8D8D93] flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#B7F161] inline-block" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#3B82F6] inline-block" />
                       Terhubung
                     </span>
                   ) : (

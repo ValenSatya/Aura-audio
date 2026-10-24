@@ -47,6 +47,8 @@ interface TrackListProps {
   onDeleteCustomPlaylist?: (id: string) => void;
   onOpenAddToPlaylistModal?: (trackIds: string[]) => void;
   onBackToLibrary?: () => void;
+  onNavigateToDiscover?: () => void;
+  onNavigateToHome?: () => void;
   dynamicLighting?: {
     enabled: boolean;
     intensity: 'subtle' | 'medium' | 'vibrant';
@@ -82,11 +84,14 @@ export const TrackList: React.FC<TrackListProps> = ({
   onDeleteCustomPlaylist,
   onOpenAddToPlaylistModal,
   onBackToLibrary,
+  onNavigateToDiscover,
+  onNavigateToHome,
   dynamicLighting,
 }) => {
   // Multi-select state
   const [selectedTrackIds, setSelectedTrackIds] = useState<Set<string>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const toggleSelectTrack = (id: string) => {
     setSelectedTrackIds((prev) => {
@@ -174,13 +179,16 @@ export const TrackList: React.FC<TrackListProps> = ({
   const pendingDownloadCount = tracks.length - offlineTrackCount;
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-transparent overflow-y-auto select-none relative font-['Sora']">
+    <div className="flex-1 h-full overflow-y-auto select-none relative font-['Sora'] scroll-smooth">
+      {/* Top subtle ambient gradient glow */}
+      <div className="absolute top-0 left-0 right-0 h-72 bg-gradient-to-b from-white/[0.04] via-white/[0.01] to-transparent pointer-events-none" />
+
       {/* Back button to library grid */}
       {onBackToLibrary && (
-        <div className="px-8 pt-6 -mb-3 flex items-center z-10">
+        <div className="px-8 pt-5 pb-1 relative z-10">
           <button
             onClick={onBackToLibrary}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-[8px] bg-[#17171A] hover:bg-[#1F1F23] text-[#8D8D93] hover:text-[#F4F4F0] text-xs font-medium transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-white text-xs font-medium border border-white/[0.06] transition-all cursor-pointer"
           >
             <ArrowLeft size={14} />
             <span>Kembali ke Pustaka</span>
@@ -188,9 +196,9 @@ export const TrackList: React.FC<TrackListProps> = ({
         </div>
       )}
 
-      {/* 1. Hero Banner (Section 5.4 design.md: Cover 280px radius 8px, Title Display 40px 300) */}
-      <div className="p-8 pb-7 flex flex-col md:flex-row items-start md:items-end gap-7 flex-shrink-0 relative overflow-hidden select-none">
-        <div className="w-48 h-48 md:w-60 md:h-60 rounded-[8px] shadow-2xl bg-[#17171A] overflow-hidden flex-shrink-0 flex items-center justify-center text-[#8D8D93] relative z-10 transition-transform duration-300 hover:scale-[1.01]">
+      {/* 1. Hero Banner (Compact & Balanced, inspired by Spotify & Juxtopposed) */}
+      <div className="px-8 py-4 flex flex-col sm:flex-row sm:items-end gap-6 relative z-10">
+        <div className="w-36 h-36 sm:w-40 sm:h-40 md:w-44 md:h-44 rounded-2xl shadow-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/[0.08] overflow-hidden flex-shrink-0 flex items-center justify-center text-zinc-400 transition-transform duration-300 hover:scale-[1.01]">
           {playlistCover ? (
             <img
               src={playlistCover}
@@ -198,26 +206,28 @@ export const TrackList: React.FC<TrackListProps> = ({
               className="w-full h-full object-cover"
             />
           ) : (
-            <ListMusic size={64} className="text-[#8D8D93]" />
+            <div className="flex flex-col items-center justify-center gap-2">
+              <ListMusic size={48} className="text-zinc-500" />
+            </div>
           )}
         </div>
 
-        <div className="min-w-0 flex-1 relative z-10">
-          <span className="text-[12px] font-semibold uppercase tracking-wider text-[#8D8D93] block mb-1">
+        <div className="min-w-0 flex-1">
+          <span className="text-[11px] font-semibold tracking-wider text-zinc-400 uppercase block mb-1">
             {customPlaylist ? 'Playlist Kustom' : currentFilter === 'offline' ? 'Koleksi Offline' : 'Koleksi Pustaka'}
           </span>
-          <h1 className="text-3xl md:text-4xl lg:text-[40px] font-light text-[#F4F4F0] tracking-[-0.8px] my-2 line-clamp-2 leading-none">
+          <h1 className="text-2xl sm:text-3xl md:text-[34px] font-bold text-white tracking-tight my-1 line-clamp-2 leading-tight">
             {customPlaylist
               ? customPlaylist.name
               : currentFilter === 'offline'
               ? 'Tersimpan Offline'
               : 'Semua Lagu'}
           </h1>
-          <p className="text-[13px] text-[#8D8D93] font-normal line-clamp-2 mt-2">
+          <p className="text-xs sm:text-[13px] text-zinc-400 font-normal line-clamp-2 mt-1 leading-relaxed max-w-2xl">
             {customPlaylist?.description || 'Daftar putar lagu favorit pilihan Anda di AuraAudio'}
           </p>
-          <div className="flex items-center gap-2 text-[12px] text-[#8D8D93] font-normal mt-3">
-            <span className="font-semibold text-[#F4F4F0]">AuraAudio</span>
+          <div className="flex items-center gap-2 text-xs text-zinc-400 font-normal mt-2.5">
+            <span className="font-semibold text-white">AuraAudio</span>
             <span>•</span>
             <span>{tracks.length} lagu</span>
             {totalDurationSecs > 0 && (
@@ -230,10 +240,10 @@ export const TrackList: React.FC<TrackListProps> = ({
         </div>
       </div>
 
-      {/* 2. Action Bar (Section 5: Circular 48px play button, secondary buttons #1F1F23) */}
-      <div className="px-8 py-4 flex items-center justify-between gap-4 sticky top-0 bg-[#0B0B0C]/90 backdrop-blur-xl z-20">
+      {/* 2. Sticky Action Bar */}
+      <div className="px-8 py-3 flex items-center justify-between gap-4 sticky top-0 bg-[#121215]/95 backdrop-blur-xl z-30 border-b border-white/[0.06] shadow-sm">
         <div className="flex items-center gap-3">
-          {/* Primary Accent Play Button: Circular 48px, #F4F4F0, rounded-full */}
+          {/* Primary Accent Play Button: Circular 44px */}
           {tracks.length > 0 && (
             <button
               onClick={() => {
@@ -245,13 +255,13 @@ export const TrackList: React.FC<TrackListProps> = ({
                   onSelectTrack(tracks[0].id);
                 }
               }}
-              className="w-12 h-12 rounded-full bg-[#F4F4F0] text-[#0B0B0C] flex items-center justify-center shadow-md transition-transform hover:scale-105 active:scale-95 cursor-pointer flex-shrink-0"
+              className="w-11 h-11 rounded-full bg-white text-black flex items-center justify-center shadow-md transition-all hover:scale-105 active:scale-95 cursor-pointer flex-shrink-0"
               title={isPlaylistActive && isPlaying ? 'Jeda' : 'Putar'}
             >
               {isPlaylistActive && isPlaying ? (
-                <Pause size={20} fill="currentColor" />
+                <Pause size={18} fill="currentColor" />
               ) : (
-                <Play size={20} fill="currentColor" className="ml-0.5" />
+                <Play size={18} fill="currentColor" className="ml-0.5" />
               )}
             </button>
           )}
@@ -260,10 +270,10 @@ export const TrackList: React.FC<TrackListProps> = ({
           {onPlayShuffled && tracks.length > 0 && (
             <button
               onClick={() => onPlayShuffled(tracks)}
-              className="h-10 px-4 rounded-[8px] bg-[#1F1F23] hover:bg-[#34343A] text-[#F4F4F0] text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer"
+              className="h-9 px-3.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-white text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer border border-white/[0.08] active:scale-95"
               title="Acak & Putar"
             >
-              <Shuffle size={15} />
+              <Shuffle size={14} />
               <span>Acak</span>
             </button>
           )}
@@ -272,133 +282,215 @@ export const TrackList: React.FC<TrackListProps> = ({
           {onDownloadBatch && tracks.length > 0 && (
             isAllOffline ? (
               <div
-                className="h-10 px-4 rounded-[8px] bg-[#1F1F23] text-[#F4F4F0] text-xs font-medium flex items-center gap-2 cursor-default"
+                className="h-9 px-3.5 rounded-xl bg-white/[0.04] text-zinc-300 text-xs font-semibold flex items-center gap-2 border border-white/[0.08] cursor-default"
                 title="Semua lagu dalam playlist ini sudah tersimpan secara offline"
               >
-                <CheckCircle2 size={15} />
-                <span>Tersimpan Offline ({tracks.length} lagu)</span>
+                <CheckCircle2 size={15} className="text-emerald-400" />
+                <span>Tersimpan Offline ({tracks.length})</span>
               </div>
             ) : (
               <button
                 onClick={() => onDownloadBatch(tracks)}
-                className="h-10 px-4 rounded-[8px] bg-[#1F1F23] hover:bg-[#34343A] text-[#F4F4F0] text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer group"
+                className="h-9 px-3.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-white text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer border border-white/[0.08] group active:scale-95"
                 title="Unduh seluruh playlist untuk diputar secara offline"
               >
-                <Download size={14} className="text-[#F4F4F0] group-hover:scale-110 transition-transform" />
-                <span>Unduh Playlist ({pendingDownloadCount} lagu)</span>
+                <Download size={14} className="text-white group-hover:scale-110 transition-transform" />
+                <span>Unduh Playlist ({pendingDownloadCount})</span>
               </button>
             )
           )}
 
-          {/* Delete Playlist (if custom playlist) */}
+          {/* When playlist is empty, show prominent constructive action buttons */}
+          {tracks.length === 0 && (
+            <div className="flex items-center gap-2.5">
+              {onNavigateToDiscover && (
+                <button
+                  onClick={onNavigateToDiscover}
+                  className="h-9 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer shadow-sm active:scale-95"
+                >
+                  <Plus size={15} />
+                  <span>Tambah Lagu</span>
+                </button>
+              )}
+              <button
+                onClick={() => onOpenImportModal('playlist')}
+                className="h-9 px-3.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-zinc-200 hover:text-white text-xs font-medium flex items-center gap-2 transition-all cursor-pointer border border-white/[0.08]"
+              >
+                <FileSpreadsheet size={14} className="text-zinc-400" />
+                <span>Impor File</span>
+              </button>
+            </div>
+          )}
+
+          {/* Delete Playlist (Styled secondary with confirmation prompt) */}
           {customPlaylist && onDeleteCustomPlaylist && (
-            <button
-              onClick={() => onDeleteCustomPlaylist(customPlaylist.id)}
-              className="h-10 w-10 rounded-[8px] bg-[#1F1F23] hover:bg-[#34343A] text-[#E07A7A] flex items-center justify-center transition-colors cursor-pointer"
-              title="Hapus playlist ini"
-            >
-              <Trash2 size={16} />
-            </button>
+            confirmDelete ? (
+              <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-xl px-3 py-1.5 animate-in fade-in">
+                <span className="text-xs text-red-300 font-medium">Hapus playlist ini?</span>
+                <button
+                  onClick={() => {
+                    onDeleteCustomPlaylist(customPlaylist.id);
+                    setConfirmDelete(false);
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-semibold transition-all cursor-pointer active:scale-95"
+                >
+                  Ya, Hapus
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  className="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/15 text-zinc-300 text-xs font-medium transition-all cursor-pointer"
+                >
+                  Batal
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="h-9 px-3 rounded-xl bg-white/[0.04] hover:bg-red-500/10 text-zinc-400 hover:text-red-400 text-xs font-medium flex items-center gap-2 border border-white/[0.06] hover:border-red-500/20 transition-all cursor-pointer group active:scale-95"
+                title="Hapus playlist ini"
+              >
+                <Trash2 size={14} className="group-hover:scale-105 transition-transform" />
+                <span className="hidden sm:inline">Hapus Playlist</span>
+              </button>
+            )
           )}
         </div>
 
-        {/* Search Within Playlist */}
-        <div className="relative w-56 md:w-64 h-10 rounded-[8px] bg-[#17171A] hover:bg-[#1F1F23] focus-within:bg-[#1F1F23] px-3 flex items-center gap-2 text-xs text-[#F4F4F0]">
-          <Search size={14} className="text-[#8D8D93] flex-shrink-0" />
-          <input
-            type="text"
-            placeholder="Cari dalam daftar..."
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="bg-transparent text-xs text-[#F4F4F0] placeholder-[#8D8D93] focus:outline-none w-full"
-          />
-        </div>
+        {/* Search Within Playlist (Only show if playlist has songs OR there is an active search query) */}
+        {(tracks.length > 0 || searchQuery.length > 0) && (
+          <div className="relative w-52 md:w-60 h-9 rounded-full bg-white/[0.05] hover:bg-white/[0.08] focus-within:bg-white/[0.08] border border-white/[0.08] focus-within:border-white/20 px-3.5 flex items-center gap-2 text-xs text-white transition-all backdrop-blur-md">
+            <Search size={14} className="text-zinc-400 flex-shrink-0" />
+            <input
+              type="text"
+              placeholder="Cari dalam daftar..."
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="bg-transparent text-xs text-white placeholder-zinc-500 focus:outline-none w-full"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => onSearchChange('')}
+                className="text-zinc-400 hover:text-white"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Main Track Table */}
-      <div className="flex-1 overflow-y-auto px-6 md:px-8 py-4 pb-12">
+      <div className="px-6 md:px-8 py-2 pb-36">
         {tracks.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center p-8 rounded-[10px] bg-[#17171A]">
-            <div className="w-14 h-14 rounded-[8px] bg-[#1F1F23] flex items-center justify-center text-[#8D8D93] mb-4">
-              <Music size={26} />
+          <div className="flex flex-col items-center justify-center text-center py-16 px-6 max-w-lg mx-auto rounded-2xl bg-white/[0.02] border border-white/[0.06] my-6 shadow-sm">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/[0.08] flex items-center justify-center text-zinc-300 mb-4 shadow-inner">
+              <Music size={26} strokeWidth={1.75} />
             </div>
-            <h3 className="text-sm font-semibold text-[#F4F4F0] mb-1">
+
+            <h3 className="text-base font-semibold text-white tracking-tight mb-1.5">
               {searchQuery
                 ? 'Tidak Ada Lagu yang Cocok'
                 : customPlaylist
-                ? 'Playlist Masih Kosong'
+                ? 'Playlist Anda Masih Kosong'
                 : 'Koleksi Belum Memiliki Lagu'}
             </h3>
-            <p className="text-xs text-[#8D8D93] max-w-sm mb-6">
+
+            <p className="text-xs text-zinc-400 max-w-sm mb-6 leading-relaxed">
               {searchQuery
                 ? `Tidak ditemukan lagu dengan kata kunci "${searchQuery}". Coba kata kunci lain.`
                 : customPlaylist
-                ? 'Gunakan fitur centang pada lagu apa saja, lalu klik "Ke Playlist" untuk memasukkannya ke sini.'
-                : 'Mulai dengan mengimpor file playlist M3U, spreadsheet CSV, atau masukkan file audio lokal.'}
+                ? 'Playlist ini belum memiliki lagu. Temukan musik favoritmu di YouTube Music atau impor playlist untuk mulai mendengarkan.'
+                : 'Mulai dengan mencari lagu di YouTube Music, mengimpor file M3U/CSV, atau menambahkan file audio lokal.'}
             </p>
 
             {searchQuery && (
               <button
                 onClick={() => onSearchChange('')}
-                className="px-5 py-2.5 bg-[#1F1F23] hover:bg-[#34343A] text-[#F4F4F0] rounded-[8px] text-xs font-semibold transition-all cursor-pointer"
+                className="px-4 py-2 bg-white/[0.08] hover:bg-white/[0.14] text-white rounded-xl text-xs font-semibold border border-white/[0.1] transition-all cursor-pointer active:scale-95"
               >
                 Hapus Pencarian
               </button>
             )}
 
             {!searchQuery && !customPlaylist && (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center justify-center gap-2.5">
+                {onNavigateToDiscover && (
+                  <button
+                    onClick={onNavigateToDiscover}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-zinc-200 text-black rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-md active:scale-95"
+                  >
+                    <Search size={14} />
+                    <span>Cari Lagu Online</span>
+                  </button>
+                )}
                 <button
                   onClick={() => onOpenImportModal('youtube')}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-[#1F1F23] hover:bg-[#34343A] text-[#F4F4F0] rounded-[8px] text-xs font-medium transition-all cursor-pointer"
+                  className="flex items-center gap-2 px-3.5 py-2.5 bg-white/[0.05] hover:bg-white/[0.1] text-zinc-300 hover:text-white rounded-xl text-xs font-medium border border-white/[0.08] transition-all cursor-pointer"
                 >
-                  <YoutubeIcon size={14} className="text-[#8D8D93]" />
+                  <YoutubeIcon size={14} className="text-red-400" />
                   <span>Link YouTube</span>
                 </button>
                 <button
                   onClick={() => onOpenImportModal('playlist')}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-[#1F1F23] hover:bg-[#34343A] text-[#F4F4F0] rounded-[8px] text-xs font-medium transition-all cursor-pointer"
+                  className="flex items-center gap-2 px-3.5 py-2.5 bg-white/[0.05] hover:bg-white/[0.1] text-zinc-300 hover:text-white rounded-xl text-xs font-medium border border-white/[0.08] transition-all cursor-pointer"
                 >
-                  <FileSpreadsheet size={14} className="text-[#8D8D93]" />
-                  <span>Import M3U / CSV</span>
+                  <FileSpreadsheet size={14} className="text-emerald-400" />
+                  <span>M3U / CSV</span>
                 </button>
                 <button
                   onClick={() => onOpenImportModal('spotify')}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-[#1F1F23] hover:bg-[#34343A] text-[#F4F4F0] rounded-[8px] text-xs font-medium transition-all cursor-pointer"
+                  className="flex items-center gap-2 px-3.5 py-2.5 bg-white/[0.05] hover:bg-white/[0.1] text-zinc-300 hover:text-white rounded-xl text-xs font-medium border border-white/[0.08] transition-all cursor-pointer"
                 >
-                  <SpotifyIcon size={14} className="text-[#8D8D93]" />
-                  <span>Import Spotify</span>
+                  <SpotifyIcon size={14} className="text-emerald-400" />
+                  <span>Spotify</span>
                 </button>
               </div>
             )}
 
             {!searchQuery && customPlaylist && (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                {onNavigateToDiscover && (
+                  <button
+                    onClick={onNavigateToDiscover}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-zinc-200 text-black rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-md active:scale-95"
+                  >
+                    <Plus size={15} />
+                    <span>Cari & Tambah Lagu</span>
+                  </button>
+                )}
                 <button
                   onClick={() => onOpenImportModal('playlist')}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-[#1F1F23] hover:bg-[#34343A] text-[#F4F4F0] rounded-[8px] text-xs font-medium transition-all cursor-pointer"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-white/[0.05] hover:bg-white/[0.1] text-zinc-200 hover:text-white rounded-xl text-xs font-medium border border-white/[0.08] transition-all cursor-pointer active:scale-95"
                 >
-                  <FileSpreadsheet size={15} className="text-[#8D8D93]" />
-                  <span>Impor File Playlist (M3U / CSV)</span>
+                  <FileSpreadsheet size={14} className="text-zinc-400" />
+                  <span>Impor M3U / CSV</span>
                 </button>
+                {onNavigateToHome && (
+                  <button
+                    onClick={onNavigateToHome}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-white/[0.05] hover:bg-white/[0.1] text-zinc-400 hover:text-zinc-200 rounded-xl text-xs font-medium border border-white/[0.08] transition-all cursor-pointer active:scale-95"
+                  >
+                    <span>Jelajahi Beranda</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
         ) : (
           <table className="w-full text-left border-collapse select-none">
-            <thead>
-              <tr className="text-[12px] font-normal text-[#8D8D93] pb-2 select-none">
+            <thead className="sticky top-[53px] bg-[#121215]/95 backdrop-blur-md z-20 border-b border-white/[0.06]">
+              <tr className="text-xs font-medium text-zinc-400 select-none">
                 {/* Select All Checkbox Header */}
-                <th className="w-12 py-2 pl-4 text-center">
+                <th className="w-12 py-2.5 pl-4 text-center">
                   <div className="flex items-center justify-center">
                     <button
                       onClick={handleToggleSelectAll}
-                      className={`w-4 h-4 rounded-[4px] flex items-center justify-center transition-all cursor-pointer ${
+                      className={`w-4 h-4 rounded-md flex items-center justify-center transition-all cursor-pointer ${
                         selectedTrackIds.size > 0 && selectedTrackIds.size === tracks.length
-                          ? 'bg-[#F4F4F0] text-[#0B0B0C]'
+                          ? 'bg-white text-black'
                           : selectedTrackIds.size > 0
-                          ? 'bg-[#34343A] text-[#F4F4F0]'
-                          : 'bg-[#1F1F23] text-transparent hover:bg-[#34343A]'
+                          ? 'bg-zinc-700 text-white'
+                          : 'bg-zinc-800 text-transparent hover:bg-zinc-700'
                       }`}
                       title={
                         selectedTrackIds.size === tracks.length
@@ -409,18 +501,18 @@ export const TrackList: React.FC<TrackListProps> = ({
                       {selectedTrackIds.size === tracks.length ? (
                         <Check size={11} strokeWidth={3} />
                       ) : selectedTrackIds.size > 0 ? (
-                        <div className="w-2 h-0.5 bg-[#F4F4F0] rounded-full" />
+                        <div className="w-2 h-0.5 bg-white rounded-full" />
                       ) : null}
                     </button>
                   </div>
                 </th>
-                <th className="py-2 text-[12px] font-normal text-[#8D8D93]">Judul</th>
-                <th className="w-44 py-2 text-[12px] font-normal text-[#8D8D93] hidden md:table-cell">Album</th>
-                <th className="w-28 py-2 text-[12px] font-normal text-[#8D8D93] hidden lg:table-cell">Sumber</th>
-                <th className="w-24 py-2 text-right pr-6">
-                  <Clock3 size={14} className="inline text-[#8D8D93]" />
+                <th className="py-2.5 text-xs font-medium text-zinc-400">Judul</th>
+                <th className="w-48 py-2.5 text-xs font-medium text-zinc-400 hidden md:table-cell">Album</th>
+                <th className="w-24 py-2.5 text-xs font-medium text-zinc-400 hidden lg:table-cell">Sumber</th>
+                <th className="w-24 py-2.5 text-right pr-6">
+                  <Clock3 size={14} className="inline text-zinc-400" />
                 </th>
-                <th className="w-20 py-2 text-right pr-4"></th>
+                <th className="w-20 py-2.5 text-right pr-4"></th>
               </tr>
             </thead>
             <tbody>
@@ -442,16 +534,16 @@ export const TrackList: React.FC<TrackListProps> = ({
                       }
                     }}
                     onDoubleClick={() => onSelectTrack(track.id)}
-                    className={`group transition-colors rounded-[8px] cursor-pointer ${
+                    className={`group transition-colors rounded-xl cursor-pointer ${
                       isRowChecked
-                        ? 'bg-[#17171A] text-[#F4F4F0]'
+                        ? 'bg-white/10 text-white'
                         : currentTrack?.id === track.id
-                        ? 'bg-[#17171A] text-[#F4F4F0]'
-                        : 'hover:bg-[#1F1F23]'
+                        ? 'bg-white/[0.08] text-white'
+                        : 'hover:bg-white/[0.05]'
                     }`}
                   >
                     {/* Index or Checkbox */}
-                    <td className="py-2 pl-4 text-[11px] font-mono text-[#8D8D93] text-center">
+                    <td className="py-2 pl-4 text-xs font-mono text-zinc-400 text-center">
                       <div className="w-8 flex items-center justify-center gap-1.5">
                         {/* Checkbox */}
                         <button
@@ -459,12 +551,12 @@ export const TrackList: React.FC<TrackListProps> = ({
                             e.stopPropagation();
                             toggleSelectTrack(track.id);
                           }}
-                          className={`w-4 h-4 rounded-[4px] flex items-center justify-center transition-all ${
+                          className={`w-4 h-4 rounded-md flex items-center justify-center transition-all ${
                             isRowChecked
-                              ? 'bg-[#F4F4F0] text-[#0B0B0C]'
+                              ? 'bg-white text-black'
                               : selectedTrackIds.size > 0
-                              ? 'bg-[#34343A] text-transparent opacity-70 hover:opacity-100'
-                              : 'bg-[#1F1F23] text-transparent opacity-0 group-hover:opacity-100'
+                              ? 'bg-zinc-700 text-transparent opacity-70 hover:opacity-100'
+                              : 'bg-zinc-800 text-transparent opacity-0 group-hover:opacity-100'
                           }`}
                           title={isRowChecked ? 'Batalkan pilihan' : 'Pilih lagu ini'}
                         >
@@ -476,10 +568,12 @@ export const TrackList: React.FC<TrackListProps> = ({
                           <span
                             className={`${
                               isRowChecked ? 'hidden' : 'group-hover:hidden'
-                            } w-4 text-center font-normal`}
+                            } w-4 text-center font-normal ${
+                              currentTrack?.id === track.id ? 'text-white font-semibold' : 'text-zinc-400'
+                            }`}
                           >
                             {isItemPlaying ? (
-                              <Volume2 size={14} className="text-[#F4F4F0] inline" />
+                              <Volume2 size={14} className="text-blue-400 inline animate-pulse" />
                             ) : (
                               idx + 1
                             )}
@@ -493,7 +587,7 @@ export const TrackList: React.FC<TrackListProps> = ({
                               e.stopPropagation();
                               onSelectTrack(track.id);
                             }}
-                            className="hidden group-hover:flex text-[#F4F4F0] hover:scale-105 transition-transform cursor-pointer"
+                            className="hidden group-hover:flex text-white hover:scale-110 transition-transform cursor-pointer"
                             title={isItemPlaying ? 'Jeda' : 'Putar lagu ini'}
                           >
                             {isItemPlaying ? (
@@ -509,7 +603,7 @@ export const TrackList: React.FC<TrackListProps> = ({
                     {/* Title, Artist, Thumbnail */}
                     <td className="py-2.5">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-[6px] bg-[#17171A] overflow-hidden flex-shrink-0 flex items-center justify-center shadow-sm">
+                        <div className="w-11 h-11 rounded-[8px] bg-zinc-800 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-md border border-white/10">
                           {track.thumbnailUrl ? (
                             <img
                               src={track.thumbnailUrl}
@@ -517,29 +611,29 @@ export const TrackList: React.FC<TrackListProps> = ({
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <Music size={16} className="text-[#8D8D93]" />
+                            <Music size={16} className="text-zinc-400" />
                           )}
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 min-w-0">
                             <p
-                              className={`text-sm font-normal truncate ${
+                              className={`text-sm font-semibold truncate ${
                                 isRowChecked
-                                  ? 'text-[#F4F4F0]'
+                                  ? 'text-white'
                                   : currentTrack?.id === track.id
-                                  ? 'text-[#F4F4F0] font-medium'
-                                  : 'text-[#F4F4F0]'
+                                  ? 'text-white'
+                                  : 'text-white'
                               }`}
                             >
                               {track.title}
                             </p>
                             {isOfflineReady && (
                               <span title="Tersimpan Offline">
-                                <CheckCircle2 size={12} className="fill-[#F4F4F0] text-[#0B0B0C] flex-shrink-0" />
+                                <CheckCircle2 size={12} className="text-zinc-400 flex-shrink-0" />
                               </span>
                             )}
                           </div>
-                          <p className="text-xs font-normal text-[#8D8D93] group-hover:text-[#F4F4F0] truncate mt-0.5">
+                          <p className="text-xs font-normal text-zinc-400 group-hover:text-zinc-200 truncate mt-0.5">
                             {track.artist}
                           </p>
                         </div>
@@ -548,40 +642,40 @@ export const TrackList: React.FC<TrackListProps> = ({
 
                     {/* Album */}
                     <td className="py-2.5 hidden md:table-cell">
-                      <span className="text-xs font-normal text-[#8D8D93] truncate block">
+                      <span className="text-xs font-normal text-zinc-400 truncate block">
                         {track.album || '-'}
                       </span>
                     </td>
 
                     {/* Source Badge */}
                     <td className="py-2.5 hidden lg:table-cell">
-                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[4px] text-[10px] font-mono bg-[#1F1F23] text-[#8D8D93] uppercase">
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/5 border border-white/5 text-zinc-400 uppercase">
                         {track.sourceType}
                       </span>
                     </td>
 
                     {/* Duration */}
-                    <td className="py-2.5 text-[11px] font-mono text-[#8D8D93] text-right pr-6">
+                    <td className="py-2.5 text-xs font-mono text-zinc-400 text-right pr-6 tabular-nums">
                       {formatDuration(track.duration)}
                     </td>
 
                     {/* Offline / Download Status */}
                     <td className="py-3">
                       {isOfflineReady ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-[#1F1F23] text-xs text-[#8D8D93] font-medium">
-                          <CheckCircle2 size={12} className="fill-[#F4F4F0] text-[#0B0B0C]" />
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-zinc-300 font-medium">
+                          <CheckCircle2 size={12} className="text-zinc-400" />
                           <span>Offline</span>
                         </span>
                       ) : isDownloading ? (
                         <div className="flex items-center gap-2">
-                          <Loader2 size={13} className="animate-spin text-[#8D8D93]" />
+                          <Loader2 size={13} className="animate-spin text-zinc-400" />
                           <div className="flex flex-col">
-                            <span className="text-[10px] font-mono text-[#8D8D93]">
+                            <span className="text-[10px] font-mono text-zinc-400">
                               {track.downloadProgress || 0}%
                             </span>
-                            <div className="w-16 h-1 bg-[#34343A] rounded-[2px] overflow-hidden">
+                            <div className="w-16 h-1 bg-zinc-800 rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-[#F4F4F0] transition-all duration-200"
+                                className="h-full bg-blue-500 transition-all duration-200"
                                 style={{ width: `${track.downloadProgress || 0}%` }}
                               />
                             </div>
@@ -593,7 +687,7 @@ export const TrackList: React.FC<TrackListProps> = ({
                             e.stopPropagation();
                             onStartDownload(track);
                           }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[#1F1F23] hover:bg-[#34343A] text-[#8D8D93] hover:text-[#F4F4F0] text-[11px] font-medium transition-colors cursor-pointer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 text-zinc-400 hover:text-white text-[11px] font-medium transition-colors cursor-pointer"
                           title="Download untuk diputar secara offline"
                         >
                           <Download size={12} />
@@ -611,7 +705,7 @@ export const TrackList: React.FC<TrackListProps> = ({
                               e.stopPropagation();
                               onPlayNext(track);
                             }}
-                            className="p-1.5 rounded-[6px] text-[#8D8D93] hover:text-[#F4F4F0] hover:bg-[#34343A] transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
                             title="Putar Berikutnya"
                           >
                             <CornerDownRight size={14} />
@@ -623,7 +717,7 @@ export const TrackList: React.FC<TrackListProps> = ({
                               e.stopPropagation();
                               onOpenAddToPlaylistModal([track.id]);
                             }}
-                            className="p-1.5 rounded-[6px] text-[#8D8D93] hover:text-[#F4F4F0] hover:bg-[#34343A] transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
                             title="Tambahkan ke Playlist"
                           >
                             <ListPlus size={14} />
@@ -634,7 +728,7 @@ export const TrackList: React.FC<TrackListProps> = ({
                             e.stopPropagation();
                             onRemoveTrack(track.id);
                           }}
-                          className="p-1.5 rounded-[6px] text-[#8D8D93] hover:text-[#E07A7A] hover:bg-[#34343A] transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                          className="p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
                           title="Hapus dari daftar"
                         >
                           <Trash2 size={14} />
@@ -651,18 +745,18 @@ export const TrackList: React.FC<TrackListProps> = ({
 
       {/* Floating Bulk Action Bar (When 1 or more tracks are selected) */}
       {selectedTrackIds.size > 0 && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 bg-[#17171A] text-[#F4F4F0] px-5 py-2.5 rounded-[8px] shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom duration-200">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 bg-[#141418]/95 backdrop-blur-xl border border-white/[0.08] text-white px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom duration-200">
           <div className="flex items-center gap-1.5 pr-2">
-            <span className="text-xs font-semibold text-[#F4F4F0] font-mono">{selectedTrackIds.size}</span>
-            <span className="text-xs text-[#8D8D93]">dipilih</span>
+            <span className="text-xs font-semibold text-white font-mono">{selectedTrackIds.size}</span>
+            <span className="text-xs text-zinc-400">dipilih</span>
           </div>
 
-          <div className="h-4 w-[1px] bg-[#34343A]" />
+          <div className="h-4 w-[1px] bg-white/10" />
 
           {/* Action: Play Selected */}
           <button
             onClick={handlePlaySelected}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#F4F4F0] text-[#0B0B0C] rounded-[6px] text-xs font-semibold shadow-sm transition-all active:scale-95 cursor-pointer hover:brightness-95"
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-white text-black rounded-full text-xs font-semibold shadow-sm transition-all active:scale-95 cursor-pointer hover:bg-zinc-200"
             title="Putar lagu-lagu yang dipilih"
           >
             <Play size={13} fill="currentColor" />
@@ -673,7 +767,7 @@ export const TrackList: React.FC<TrackListProps> = ({
           {onAddTracksToQueue && (
             <button
               onClick={handleQueueSelected}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#1F1F23] hover:bg-[#34343A] text-[#F4F4F0] rounded-[6px] text-xs font-medium transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white/5 hover:bg-white/10 text-white rounded-full text-xs font-medium border border-white/5 transition-colors cursor-pointer"
               title="Tambahkan lagu yang dipilih ke antrian pemutar"
             >
               <Plus size={13} />
@@ -685,7 +779,7 @@ export const TrackList: React.FC<TrackListProps> = ({
           {onDownloadBatch && (
             <button
               onClick={handleDownloadSelected}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#1F1F23] hover:bg-[#34343A] text-[#F4F4F0] rounded-[6px] text-xs font-medium transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white/5 hover:bg-white/10 text-white rounded-full text-xs font-medium border border-white/5 transition-colors cursor-pointer"
               title="Unduh lagu yang dipilih untuk offline"
             >
               <Download size={13} />
@@ -697,10 +791,10 @@ export const TrackList: React.FC<TrackListProps> = ({
           {onOpenAddToPlaylistModal && (
             <button
               onClick={() => onOpenAddToPlaylistModal(Array.from(selectedTrackIds))}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#1F1F23] hover:bg-[#34343A] text-[#F4F4F0] rounded-[6px] text-xs font-medium transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white/5 hover:bg-white/10 text-white rounded-full text-xs font-medium border border-white/5 transition-colors cursor-pointer"
               title="Masukkan lagu yang dipilih ke playlist"
             >
-              <ListPlus size={14} className="text-[#F4F4F0]" />
+              <ListPlus size={14} className="text-zinc-300" />
               <span>Masukkan ke Playlist</span>
             </button>
           )}
@@ -708,7 +802,7 @@ export const TrackList: React.FC<TrackListProps> = ({
           {/* Action: Delete Selected */}
           <button
             onClick={handleRemoveSelected}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#1F1F23] hover:bg-[#34343A] text-[#E07A7A] rounded-[6px] text-xs font-medium transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white/5 hover:bg-red-500/15 text-red-400 rounded-full text-xs font-medium border border-white/5 transition-colors cursor-pointer"
             title="Hapus lagu yang dipilih"
           >
             <Trash2 size={13} />
@@ -718,10 +812,10 @@ export const TrackList: React.FC<TrackListProps> = ({
           {/* Clear Selection */}
           <button
             onClick={clearSelection}
-            className="p-1 hover:bg-[#34343A] text-[#8D8D93] hover:text-[#F4F4F0] rounded-[4px] transition-colors ml-1 cursor-pointer"
+            className="p-1.5 hover:bg-white/10 text-zinc-400 hover:text-white rounded-full transition-colors ml-1 cursor-pointer"
             title="Batalkan pilihan"
           >
-            <X size={15} />
+            <X size={14} />
           </button>
         </div>
       )}

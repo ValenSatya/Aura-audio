@@ -1,42 +1,39 @@
 @import "tailwindcss";
 
 :root {
-  /* Colors per design (2).md */
-  --bg: #0B0B0C;
-  --surface: #17171A;
-  --surface-high: #1F1F23;
-  --surface-player: #121214;
-  --surface-deep: #050505;
-  --track: #34343A;
-  --text: #F4F4F0;
-  --text-muted: #8D8D93;
-  --accent: #F4F4F0;
-  --progress: #B7F161;
-  --on-accent: #0B0B0C;
-  --danger: #E07A7A;
-  --now: #6B7F94;
-  --now-dark: #20262c;
+  /* Pure Neutral Dark Mode Tokens (Not #000000, High Contrast Grays) */
+  --bg: #0A0A0C;
+  --bg-canvas: #0A0A0C;
+  --bg-surface: #121215;
+  --bg-surface-elevated: #18181D;
+  --bg-surface-hover: #222228;
+  --bg-surface-active: #2A2A32;
+  --surface-player: #16161A;
+  --surface-high: #222228;
 
-  /* Neutral tonal palette (Section 8) */
-  --tonal-ink: #1A1D21;
-  --tonal-slate: #2B3038;
-  --tonal-graphite: #363B42;
-  --tonal-mist: #3A3F47;
-  --tonal-steel: #4A5059;
-  --tonal-taupe: #4A453F;
+  --track: #27272A;
+  --text: #FFFFFF;
+  --text-secondary: #D4D4D8;
+  --text-muted: #A1A1AA;
+  --text-subtle: #71717A;
 
-  /* Radius */
-  --r-xs: 2px;
-  --r-s: 4px;
-  --r-m: 6px;
-  --r-l: 8px;
-  --r-xl: 10px;
-  --r-full: 50%;
+  /* Restrained Interactive Accent - strictly for seekbar & active states */
+  --accent: #3B82F6;
+  --progress: #3B82F6;
+  --on-accent: #FFFFFF;
+  --danger: #EF4444;
+
+  /* Mathematically Nested Radius Scale */
+  --radius-island: 20px;
+  --radius-card: 16px;
+  --radius-row: 10px;
+  --radius-thumb: 8px;
+  --radius-small: 6px;
+  --radius-pill: 9999px;
 
   /* Transitions */
-  --t-fast: 120ms ease-out;
-  --t-base: 200ms ease-out;
-  --t-mood: 500ms ease-in-out;
+  --t-fast: 120ms cubic-bezier(0.16, 1, 0.3, 1);
+  --t-base: 220ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @property --now {
@@ -45,49 +42,71 @@
   initial-value: #6B7F94;
 }
 
-@layer base {
-  * {
-    box-sizing: border-box;
-    border-color: transparent;
-  }
+@theme {
+  --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
 
-  *:focus-visible {
-    outline: none !important;
-    box-shadow: 0 0 0 2px var(--accent) !important;
-  }
+* {
+  box-sizing: border-box;
+  border-color: transparent;
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
 
-  html,
-  body {
-    font-family: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-    background-color: var(--bg);
-    color: var(--text);
-  }
+*:focus,
+*:focus-visible {
+  outline: none !important;
+}
 
-  /* Monospace font for timecodes & metrics */
-  .font-mono {
-    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-feature-settings: 'tnum';
-    font-variant-numeric: tabular-nums;
-  }
+input, textarea, select, button {
+  outline: none !important;
+  box-shadow: none !important;
+}
 
-  /* Custom subtle scrollbars without borders */
-  ::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: var(--surface-high);
-    border-radius: 9999px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: #28282c;
-  }
+html,
+body {
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.012em;
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+/* GPU-Accelerated Smooth Rendering */
+.gpu-smooth {
+  transform: translateZ(0);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+/* Monospace font for timecodes & metrics */
+.font-mono,
+.font-mono * {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom subtle scrollbars without borders */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--surface-high);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #28282c;
 }
 
 /* EQ Slider vertical styling */

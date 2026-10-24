@@ -14,6 +14,7 @@ import { resolveOfficialCover } from './services/coverArtService';
 import { SpotifyAuthManager } from './services/spotifyAuthManager';
 import { SpotifyClient } from './services/spotifyClient';
 import { SpotifyAudioMatcher } from './services/spotifyAudioMatcher';
+import { SyncServer } from './services/syncServer';
 
 let mainWindow: BrowserWindow | null = null;
 let miniPlayerWindow: BrowserWindow | null = null;
@@ -111,6 +112,19 @@ app.whenReady().then(async () => {
   spotifyAuthManager = new SpotifyAuthManager();
   spotifyClient = new SpotifyClient(spotifyAuthManager);
   spotifyAudioMatcher = new SpotifyAudioMatcher();
+
+  // Initialize AuraSync server for cross-platform mobile sync
+  if (streamServer && streamServer.getHttpServer() && accountManager) {
+    SyncServer.init(streamServer.getHttpServer()!, accountManager);
+    SyncServer.onCommand((cmd) => {
+      mainWindow?.webContents.send('sync:remote-command', cmd);
+    });
+  }
+
+  // AuraSync broadcast IPC
+  ipcMain.on('sync:broadcast-state', (_event, state: any) => {
+    SyncServer.broadcastPlaybackState(state);
+  });
 
   // Local Account IPC handlers
   ipcMain.handle('account:register', async (_event, payload: any) => {
@@ -211,6 +225,10 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('ytmusic:getArtistDetails', async (_event, browseId: string, artistName?: string) => {
     return await YTMusicClient.getArtistDetails(browseId, artistName);
+  });
+
+  ipcMain.handle('ytmusic:getPersonalizedDiscovery', async (_event, seeds: any[]) => {
+    return await YTMusicClient.getPersonalizedDiscovery(seeds);
   });
 
   ipcMain.handle('media:resolveOfficialCover', async (_event, title: string, artist: string, fallbackThumb?: string) => {

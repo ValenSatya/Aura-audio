@@ -114,16 +114,16 @@ export const LibraryGridView: React.FC<LibraryGridViewProps> = ({
 
   return (
     <div className="flex-1 flex flex-col h-full bg-transparent overflow-y-auto select-none p-8 font-['Sora']">
-      {/* 1. Header Pustaka (Section 4: 40px, font-light 300, normal case) */}
+      {/* 1. Header Pustaka */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 flex-shrink-0">
         <div>
-          <span className="text-[12px] font-medium tracking-normal text-[#8D8D93] block mb-1">
+          <span className="text-[11px] font-semibold tracking-wider text-zinc-400 uppercase block mb-1">
             Koleksi Pribadi
           </span>
-          <h1 className="text-[40px] font-light text-[#F4F4F0] tracking-tight leading-none">
+          <h1 className="text-3xl md:text-4xl lg:text-[40px] font-bold text-white tracking-tight leading-none">
             Pustaka
           </h1>
-          <p className="text-[13px] text-[#8D8D93] mt-2">
+          <p className="text-xs sm:text-[13px] text-zinc-400 mt-2 leading-relaxed">
             Kelola seluruh playlist kustom, lagu favorit, dan koleksi offline Anda.
           </p>
         </div>
@@ -132,18 +132,18 @@ export const LibraryGridView: React.FC<LibraryGridViewProps> = ({
         <div className="flex items-center gap-2.5 flex-shrink-0">
           <button
             onClick={() => onOpenImportModal('playlist')}
-            className="h-10 px-4 rounded-[8px] bg-[#1F1F23] hover:bg-[#34343A] text-[#F4F4F0] text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer"
+            className="h-9 px-4 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-zinc-300 hover:text-white text-xs font-medium flex items-center gap-2 border border-white/[0.08] transition-colors cursor-pointer"
             title="Impor file playlist M3U atau CSV"
           >
-            <FileSpreadsheet size={15} className="text-[#8D8D93]" />
+            <FileSpreadsheet size={14} className="text-zinc-400" />
             <span>Impor M3U / CSV</span>
           </button>
 
           <button
             onClick={onOpenCreatePlaylist}
-            className="h-10 px-4 rounded-[8px] bg-[#F4F4F0] hover:brightness-95 text-[#0B0B0C] text-xs font-medium flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+            className="h-9 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer shadow-sm active:scale-95"
           >
-            <Plus size={16} strokeWidth={2.5} />
+            <Plus size={15} strokeWidth={2.5} />
             <span>Buat Playlist</span>
           </button>
         </div>
@@ -153,10 +153,10 @@ export const LibraryGridView: React.FC<LibraryGridViewProps> = ({
       <div className="flex items-center gap-2 mb-6 flex-shrink-0">
         <button
           onClick={() => setFilterTab('all')}
-          className={`h-9 px-4 rounded-[8px] text-xs font-medium transition-colors cursor-pointer ${
+          className={`h-8 px-3.5 rounded-full text-xs transition-all cursor-pointer ${
             filterTab === 'all'
-              ? 'bg-[#1F1F23] text-[#F4F4F0] font-semibold'
-              : 'bg-transparent text-[#8D8D93] hover:text-[#F4F4F0] hover:bg-[#17171A]'
+              ? 'bg-white/10 text-white font-semibold border border-white/10 shadow-sm'
+              : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5'
           }`}
         >
           Semua ({1 + (offlineTracks.length > 0 ? 1 : 0) + customPlaylists.length})
@@ -164,10 +164,10 @@ export const LibraryGridView: React.FC<LibraryGridViewProps> = ({
 
         <button
           onClick={() => setFilterTab('custom')}
-          className={`h-9 px-4 rounded-[8px] text-xs font-medium transition-colors cursor-pointer ${
+          className={`h-8 px-3.5 rounded-full text-xs transition-all cursor-pointer ${
             filterTab === 'custom'
-              ? 'bg-[#1F1F23] text-[#F4F4F0] font-semibold'
-              : 'bg-transparent text-[#8D8D93] hover:text-[#F4F4F0] hover:bg-[#17171A]'
+              ? 'bg-white/10 text-white font-semibold border border-white/10 shadow-sm'
+              : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5'
           }`}
         >
           Playlist Kustom ({customPlaylists.length})
@@ -175,10 +175,10 @@ export const LibraryGridView: React.FC<LibraryGridViewProps> = ({
 
         <button
           onClick={() => setFilterTab('offline')}
-          className={`h-9 px-4 rounded-[8px] text-xs font-medium transition-colors cursor-pointer ${
+          className={`h-8 px-3.5 rounded-full text-xs transition-all cursor-pointer ${
             filterTab === 'offline'
-              ? 'bg-[#1F1F23] text-[#F4F4F0] font-semibold'
-              : 'bg-transparent text-[#8D8D93] hover:text-[#F4F4F0] hover:bg-[#17171A]'
+              ? 'bg-white/10 text-white font-semibold border border-white/10 shadow-sm'
+              : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5'
           }`}
         >
           Tersimpan Offline ({offlineTracks.length})
@@ -186,16 +186,16 @@ export const LibraryGridView: React.FC<LibraryGridViewProps> = ({
       </div>
 
       {/* 3. Grid Playlist Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5 pb-16">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 pb-16">
         {/* CARD 1: Semua Lagu */}
         {showAllCard && (
           <div
             onClick={() => onSelectPlaylist('all')}
-            className="group p-3 rounded-[10px] bg-[#17171A] hover:bg-[#1F1F23] transition-all cursor-pointer flex flex-col relative"
+            className="group p-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.05] hover:border-white/[0.1] transition-all cursor-pointer flex flex-col relative shadow-sm hover:shadow-lg"
           >
             {/* Artwork Cover */}
-            <div className="relative aspect-square w-full rounded-[8px] overflow-hidden bg-[#0B0B0C] shadow-md mb-3 flex items-center justify-center">
-              {renderCoverCollage(tracks, <Music size={36} className="text-[#8D8D93]" />)}
+            <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.06] shadow-md mb-3 flex items-center justify-center">
+              {renderCoverCollage(tracks, <Music size={36} className="text-zinc-500" />)}
 
               {/* Hover Quick Play Button */}
               {tracks.length > 0 && (
@@ -204,7 +204,7 @@ export const LibraryGridView: React.FC<LibraryGridViewProps> = ({
                     e.stopPropagation();
                     onPlayPlaylist(tracks);
                   }}
-                  className="absolute bottom-2.5 right-2.5 w-10 h-10 rounded-full bg-[#F4F4F0] text-[#0B0B0C] flex items-center justify-center shadow-lg opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all cursor-pointer hover:scale-105 active:scale-95"
+                  className="absolute bottom-2.5 right-2.5 w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-lg opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all cursor-pointer hover:scale-105 active:scale-95"
                   title="Putar Semua Lagu"
                 >
                   <Play size={16} fill="currentColor" className="ml-0.5" />
@@ -214,10 +214,10 @@ export const LibraryGridView: React.FC<LibraryGridViewProps> = ({
 
             {/* Title & Info */}
             <div className="min-w-0 flex-1 flex flex-col justify-between">
-              <h3 className="text-xs font-semibold text-[#F4F4F0] truncate group-hover:text-white">
+              <h3 className="text-xs font-semibold text-white truncate group-hover:text-zinc-100">
                 Semua Lagu
               </h3>
-              <p className="text-[11px] text-[#8D8D93] truncate mt-0.5 font-['JetBrains_Mono']">
+              <p className="text-[11px] text-zinc-400 truncate mt-0.5 font-mono">
                 {tracks.length} lagu
               </p>
             </div>
@@ -228,21 +228,21 @@ export const LibraryGridView: React.FC<LibraryGridViewProps> = ({
         {showOfflineCard && (
           <div
             onClick={() => onSelectPlaylist('offline')}
-            className="group p-3 rounded-[10px] bg-[#17171A] hover:bg-[#1F1F23] transition-all cursor-pointer flex flex-col relative"
+            className="group p-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.05] hover:border-white/[0.1] transition-all cursor-pointer flex flex-col relative shadow-sm hover:shadow-lg"
           >
             {/* Artwork Cover */}
-            <div className="relative aspect-square w-full rounded-[8px] overflow-hidden bg-[#0B0B0C] shadow-md mb-3 flex items-center justify-center">
+            <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.06] shadow-md mb-3 flex items-center justify-center">
               {offlineTracks.length > 0 ? (
-                renderCoverCollage(offlineTracks, <HardDrive size={36} className="text-[#8D8D93]" />)
+                renderCoverCollage(offlineTracks, <HardDrive size={36} className="text-zinc-500" />)
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center bg-[#17171A] text-[#8D8D93] gap-2">
-                  <HardDrive size={32} className="text-[#8D8D93]" />
-                  <span className="text-[10px] text-[#8D8D93]">Belum ada</span>
+                <div className="w-full h-full flex flex-col items-center justify-center bg-white/[0.02] text-zinc-500 gap-2">
+                  <HardDrive size={32} />
+                  <span className="text-[10px] text-zinc-500">Belum ada</span>
                 </div>
               )}
 
               {/* Tag Offline */}
-              <div className="absolute top-2 left-2 px-2 py-0.5 rounded-[4px] bg-[#0B0B0C]/80 backdrop-blur-md text-[9px] font-['JetBrains_Mono'] text-[#8D8D93] flex items-center gap-1">
+              <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-[9px] font-mono text-zinc-400 flex items-center gap-1 border border-white/5">
                 <HardDrive size={10} />
                 <span>OFFLINE</span>
               </div>
@@ -254,7 +254,7 @@ export const LibraryGridView: React.FC<LibraryGridViewProps> = ({
                     e.stopPropagation();
                     onPlayPlaylist(offlineTracks);
                   }}
-                  className="absolute bottom-2.5 right-2.5 w-10 h-10 rounded-full bg-[#F4F4F0] text-[#0B0B0C] flex items-center justify-center shadow-lg opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all cursor-pointer hover:scale-105 active:scale-95"
+                  className="absolute bottom-2.5 right-2.5 w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-lg opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all cursor-pointer hover:scale-105 active:scale-95"
                   title="Putar Koleksi Offline"
                 >
                   <Play size={16} fill="currentColor" className="ml-0.5" />
@@ -264,10 +264,10 @@ export const LibraryGridView: React.FC<LibraryGridViewProps> = ({
 
             {/* Title & Info */}
             <div className="min-w-0 flex-1 flex flex-col justify-between">
-              <h3 className="text-xs font-semibold text-[#F4F4F0] truncate group-hover:text-white">
+              <h3 className="text-xs font-semibold text-white truncate group-hover:text-zinc-100">
                 Tersimpan Offline
               </h3>
-              <p className="text-[11px] text-[#8E8E93] truncate mt-0.5 font-['JetBrains_Mono']">
+              <p className="text-[11px] text-zinc-400 truncate mt-0.5 font-mono">
                 {offlineTracks.length} lagu
               </p>
             </div>
@@ -285,11 +285,11 @@ export const LibraryGridView: React.FC<LibraryGridViewProps> = ({
             <div
               key={pl.id}
               onClick={() => onSelectPlaylist(pl.id)}
-              className="group p-3 rounded-[10px] bg-[#17171A] hover:bg-[#1F1F23] transition-all cursor-pointer flex flex-col relative"
+              className="group p-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.05] hover:border-white/[0.1] transition-all cursor-pointer flex flex-col relative shadow-sm hover:shadow-lg"
             >
               {/* Artwork Cover */}
-              <div className="relative aspect-square w-full rounded-[8px] overflow-hidden bg-[#0B0B0C] shadow-md mb-3 flex items-center justify-center">
-                {renderCoverCollage(plTracks, <ListMusic size={36} className="text-[#8D8D93]" />)}
+              <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.06] shadow-md mb-3 flex items-center justify-center">
+                {renderCoverCollage(plTracks, <ListMusic size={36} className="text-zinc-500" />)}
 
                 {/* Delete Button (visible on hover) */}
                 {onDeleteCustomPlaylist && (
@@ -298,7 +298,7 @@ export const LibraryGridView: React.FC<LibraryGridViewProps> = ({
                       e.stopPropagation();
                       onDeleteCustomPlaylist(pl.id);
                     }}
-                    className="absolute top-2 right-2 w-7 h-7 rounded-[6px] bg-[#0B0B0C]/80 hover:bg-[#2D1616] text-[#8D8D93] hover:text-[#E07A7A] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    className="absolute top-2 right-2 w-7 h-7 rounded-lg bg-black/70 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer border border-white/10"
                     title="Hapus playlist ini"
                   >
                     <Trash2 size={13} />
@@ -312,7 +312,7 @@ export const LibraryGridView: React.FC<LibraryGridViewProps> = ({
                       e.stopPropagation();
                       onPlayPlaylist(plTracks);
                     }}
-                    className="absolute bottom-2.5 right-2.5 w-10 h-10 rounded-full bg-[#F4F4F0] text-[#0B0B0C] flex items-center justify-center shadow-lg opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all cursor-pointer hover:scale-105 active:scale-95"
+                    className="absolute bottom-2.5 right-2.5 w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-lg opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all cursor-pointer hover:scale-105 active:scale-95"
                     title={`Putar ${pl.name}`}
                   >
                     {isCurrentActive && isPlaying ? (
@@ -326,10 +326,10 @@ export const LibraryGridView: React.FC<LibraryGridViewProps> = ({
 
               {/* Title & Info */}
               <div className="min-w-0 flex-1 flex flex-col justify-between">
-                <h3 className="text-xs font-semibold text-[#F4F4F0] truncate group-hover:text-white">
+                <h3 className="text-xs font-semibold text-white truncate group-hover:text-zinc-100">
                   {pl.name}
                 </h3>
-                <p className="text-[11px] text-[#8D8D93] truncate mt-0.5 font-['JetBrains_Mono']">
+                <p className="text-[11px] text-zinc-400 truncate mt-0.5 font-mono">
                   {plTracks.length > 0 ? `${plTracks.length} lagu` : `${pl.trackIds.length} lagu`}
                 </p>
               </div>
@@ -340,13 +340,13 @@ export const LibraryGridView: React.FC<LibraryGridViewProps> = ({
         {/* CARD: + Buat Playlist Baru */}
         <div
           onClick={onOpenCreatePlaylist}
-          className="p-3 rounded-[10px] bg-[#17171A]/50 hover:bg-[#1F1F23] transition-all cursor-pointer flex flex-col items-center justify-center text-center aspect-square group min-h-[190px]"
+          className="p-3.5 rounded-2xl bg-white/[0.02] hover:bg-white/[0.05] border border-dashed border-white/10 hover:border-white/20 transition-all cursor-pointer flex flex-col items-center justify-center text-center aspect-square group min-h-[190px]"
         >
-          <div className="w-12 h-12 rounded-[8px] bg-[#1F1F23] group-hover:bg-[#34343A] text-[#8D8D93] group-hover:text-[#F4F4F0] flex items-center justify-center mb-3 transition-colors">
+          <div className="w-12 h-12 rounded-xl bg-white/[0.05] group-hover:bg-white/[0.1] text-zinc-400 group-hover:text-white flex items-center justify-center mb-3 transition-colors border border-white/[0.06]">
             <FolderPlus size={22} />
           </div>
-          <span className="text-xs font-semibold text-[#F4F4F0]">Buat Playlist Baru</span>
-          <span className="text-[11px] text-[#8D8D93] mt-0.5">Koleksi kustom Anda</span>
+          <span className="text-xs font-semibold text-white">Buat Playlist Baru</span>
+          <span className="text-[11px] text-zinc-400 mt-0.5">Koleksi kustom Anda</span>
         </div>
       </div>
     </div>

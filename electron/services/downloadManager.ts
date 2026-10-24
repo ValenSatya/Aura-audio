@@ -33,7 +33,7 @@ export class DownloadManager {
   // Batch queue state
   private batchQueue: Array<{ id: string; title: string; artist: string; url: string; thumbnailUrl?: string }> = [];
   private activeBatchWorkers: number = 0;
-  private maxBatchConcurrency: number = 2;
+  private maxBatchConcurrency: number = 3;
   private batchTotal: number = 0;
   private batchCompleted: number = 0;
   private batchFailed: number = 0;
@@ -135,9 +135,17 @@ export class DownloadManager {
 
       const proc = spawn(ytdl, [
         '-f',
-        'bestaudio',
+        'bestaudio[ext=m4a]/bestaudio/best',
+        '--concurrent-fragments',
+        '8',
+        '--buffer-size',
+        '32K',
         '--newline',
         '--no-playlist',
+        '--force-ipv4',
+        '--no-part',
+        '--extractor-args',
+        'youtube:player_client=android,web',
         '-o',
         destPath,
         downloadTarget,
@@ -237,6 +245,12 @@ export class DownloadManager {
       };
     }
 
+    if (!this.isBatchActive) {
+      this.batchTotal = 0;
+      this.batchCompleted = 0;
+      this.batchFailed = 0;
+    }
+
     this.batchAborted = false;
     this.batchQueue.push(...toDownload);
     this.batchTotal += toDownload.length;
@@ -256,6 +270,9 @@ export class DownloadManager {
     this.batchAborted = true;
     this.batchQueue = [];
     this.isBatchActive = false;
+    this.batchTotal = 0;
+    this.batchCompleted = 0;
+    this.batchFailed = 0;
     this.notifyBatchProgress(senderWindow);
   }
 

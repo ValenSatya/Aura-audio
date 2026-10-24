@@ -1,0 +1,217 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #000000;
+  --surface: #121214;
+  --surface-high: #1c1c1e;
+  --surface-player: rgba(28, 28, 32, 0.82);
+  --surface-deep: #000000;
+  --track: rgba(255, 255, 255, 0.16);
+  --text: #FFFFFF;
+  --text-muted: #8E8E93;
+  --accent: #FA2D48; /* Apple Music Red/Pink */
+  --accent-secondary: #FF375F;
+  --progress: #FA2D48;
+  --on-accent: #FFFFFF;
+  --danger: #FF453A;
+
+  /* Mobile Safe Area insets */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Inter", "Plus Jakarta Sans", sans-serif;
+  --font-mono: "JetBrains Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Inter", "Plus Jakarta Sans", sans-serif;
+}
+
+html,
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Inter", "Plus Jakarta Sans", sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.015em;
+  background-color: #000000;
+  color: #FFFFFF;
+  user-select: none;
+  -webkit-user-select: none;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+.font-mono,
+.font-mono * {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
+}
+
+.gpu-smooth {
+  transform: translateZ(0);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+/* Figma Apple Music Authentic Liquid Glass (Dark Obsidian Base + Specular Rim + High Contrast) */
+.liquid-glass {
+  background: linear-gradient(180deg, rgba(28, 28, 32, 0.82) 0%, rgba(14, 14, 18, 0.88) 100%);
+  backdrop-filter: blur(28px) saturate(180%) contrast(106%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%) contrast(106%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-top: 1px solid rgba(255, 255, 255, 0.32);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 
+    0 14px 32px -6px rgba(0, 0, 0, 0.75),
+    0 4px 12px -2px rgba(0, 0, 0, 0.5),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+.liquid-glass-pill {
+  background: linear-gradient(180deg, rgba(32, 32, 36, 0.84) 0%, rgba(18, 18, 22, 0.9) 100%);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-top: 1px solid rgba(255, 255, 255, 0.32);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 
+    0 8px 24px -4px rgba(0, 0, 0, 0.6),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.liquid-glass-dock {
+  background: linear-gradient(180deg, rgba(26, 26, 30, 0.85) 0%, rgba(12, 12, 16, 0.92) 100%);
+  backdrop-filter: blur(32px) saturate(190%) contrast(108%);
+  -webkit-backdrop-filter: blur(32px) saturate(190%) contrast(108%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-top: 1px solid rgba(255, 255, 255, 0.38);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 
+    0 24px 48px -10px rgba(0, 0, 0, 0.9),
+    0 8px 20px -4px rgba(0, 0, 0, 0.6),
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.32),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.6);
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* EQ Slider vertical styling */
+input[type="range"].vertical-slider {
+  -webkit-appearance: slider-vertical;
+  writing-mode: bt-lr;
+  width: 24px;
+  accent-color: #FFFFFF;
+}
+
+input[type="range"] {
+  accent-color: #FFFFFF;
+}
+
+/* Custom Apple Music Scrubber Slider with dynamic progress tracking */
+input[type="range"].scrubber-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+  transition: height 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+input[type="range"].scrubber-slider:active {
+  height: 6px;
+}
+
+input[type="range"].scrubber-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease;
+}
+
+input[type="range"].scrubber-slider:hover::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+
+input[type="range"].scrubber-slider:active::-webkit-slider-thumb {
+  transform: scale(1.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7), 0 0 0 2px rgba(255, 255, 255, 0.6);
+}
+
+input[type="range"].scrubber-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 50%;
+  background: #FFFFFF;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+input[type="range"].scrubber-slider:active::-moz-range-thumb {
+  transform: scale(1.35);
+}
+
+/* iOS Fluid Transitions & Animations */
+@keyframes fadeInSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pop-in {
+  animation: popIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+

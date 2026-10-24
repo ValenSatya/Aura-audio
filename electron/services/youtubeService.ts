@@ -67,6 +67,10 @@ export class YouTubeService {
         '--no-cache-dir',
         '--no-part',
         '--prefer-free-formats',
+        '--socket-timeout',
+        '8',
+        '--extractor-args',
+        'youtube:player_client=android,web',
       ];
 
       if (cookiesPath && fs.existsSync(cookiesPath)) {

@@ -47,9 +47,24 @@ function loadSavedCrossfade(): CrossfadeSettings {
 export function useAudioEngine(options?: {
   onTrackEnded?: () => void;
   onPlaybackProgress?: (currentTime: number, duration: number) => void;
+  onPlaybackError?: (errorMessage: string) => void;
 }) {
   const onTrackEnded = options?.onTrackEnded;
   const onPlaybackProgress = options?.onPlaybackProgress;
+  const onPlaybackError = options?.onPlaybackError;
+
+  const onTrackEndedRef = useRef(onTrackEnded);
+  const onPlaybackProgressRef = useRef(onPlaybackProgress);
+  const onPlaybackErrorRef = useRef(onPlaybackError);
+  useEffect(() => {
+    onTrackEndedRef.current = onTrackEnded;
+    onPlaybackProgressRef.current = onPlaybackProgress;
+    onPlaybackErrorRef.current = onPlaybackError;
+  });
+
+  // Track completion watchdog ref to prevent duplicate ended events or missing stream ends
+  const hasTriggeredEndedRef = useRef<boolean>(false);
+
 
   // Dual-Deck HTMLAudioElement refs
   const audioRefA = useRef<HTMLAudioElement | null>(null);
@@ -249,6 +264,7 @@ export function useAudioEngine(options?: {
       if (isFinite(time)) {
         activeAudio.currentTime = time;
         setCurrentTime(time);
+        hasTriggeredEndedRef.current = false;
       }
     } catch (e) {
       console.warn('Seek error:', e);
@@ -321,6 +337,7 @@ export function useAudioEngine(options?: {
     }
 
     if (!activeAudio) return;
+    hasTriggeredEndedRef.current = false;
     setPlaybackError(null);
     setIsBuffering(true);
     setCurrentTime(0);
@@ -413,38 +430,41 @@ export function useAudioEngine(options?: {
         return;
       }
 
-      // Prepare next audio element
+      // Prepare next audio element silently
+      hasTriggeredEndedRef.current = false;
       isCrossfadingRef.current = true;
       nextAudio.src = nextSrc;
       nextAudio.currentTime = 0;
 
-      const now = ctx.currentTime;
+      // Keep next deck completely silent while buffering
+      const preNow = ctx.currentTime;
+      nextGain.gain.cancelScheduledValues(preNow);
+      nextGain.gain.setValueAtTime(0, preNow);
 
-      // 1. Ramp down current deck from current gain to 0
-      currentGain.gain.cancelScheduledValues(now);
-      currentGain.gain.setValueAtTime(currentGain.gain.value, now);
-      currentGain.gain.linearRampToValueAtTime(0, now + fadeDuration);
-
-      // 2. Ramp up next deck from 0 to 1
-      nextGain.gain.cancelScheduledValues(now);
-      nextGain.gain.setValueAtTime(0, now);
-      nextGain.gain.linearRampToValueAtTime(1, now + fadeDuration);
-
-      // 3. Start next audio immediately
+      // 1. Start next audio and wait until it is actually buffering/playing
       try {
         setPlaybackError(null);
         await nextAudio.play();
       } catch (err: any) {
-        console.warn('Next audio play failed in crossfade, restoring current deck:', err);
-        currentGain.gain.cancelScheduledValues(ctx.currentTime);
-        currentGain.gain.setValueAtTime(1, ctx.currentTime);
-        nextGain.gain.cancelScheduledValues(ctx.currentTime);
-        nextGain.gain.setValueAtTime(0, ctx.currentTime);
+        console.warn('Next audio play failed in crossfade, current deck continues unaffected:', err);
         isCrossfadingRef.current = false;
-        return;
+        throw err;
       }
 
-      // 4. Swap active deck state immediately so UI tracks the new song progress
+      // 2. ONLY start volume ramp once next audio is confirmed playing!
+      const startFadeTime = ctx.currentTime;
+
+      // Ramp down current deck from current gain to 0
+      currentGain.gain.cancelScheduledValues(startFadeTime);
+      currentGain.gain.setValueAtTime(currentGain.gain.value, startFadeTime);
+      currentGain.gain.linearRampToValueAtTime(0, startFadeTime + fadeDuration);
+
+      // Ramp up next deck from 0 to 1
+      nextGain.gain.cancelScheduledValues(startFadeTime);
+      nextGain.gain.setValueAtTime(0, startFadeTime);
+      nextGain.gain.linearRampToValueAtTime(1, startFadeTime + fadeDuration);
+
+      // 3. Swap active deck state immediately so UI tracks the new song progress
       activeDeckRef.current = nextDeck;
       setActiveDeck(nextDeck);
       setIsPlaying(true);
@@ -480,11 +500,42 @@ export function useAudioEngine(options?: {
     audios.forEach(({ el, deck }) => {
       if (!el) return;
 
+      let stallTimer: number | null = null;
+      const clearStallTimer = () => {
+        if (stallTimer !== null) {
+          clearTimeout(stallTimer);
+          stallTimer = null;
+        }
+      };
+
+      const handleEnded = () => {
+        clearStallTimer();
+        // ONLY active deck triggering ended should advance the playlist
+        if (activeDeckRef.current === deck && !hasTriggeredEndedRef.current) {
+          hasTriggeredEndedRef.current = true;
+          setIsPlaying(false);
+          setIsBuffering(false);
+          if (onTrackEndedRef.current) onTrackEndedRef.current();
+        }
+      };
+
       const handleTimeUpdate = () => {
         if (activeDeckRef.current === deck && el.currentTime && isFinite(el.currentTime)) {
           setCurrentTime(el.currentTime);
-          if (onPlaybackProgress && el.duration && isFinite(el.duration)) {
-            onPlaybackProgress(el.currentTime, el.duration);
+          if (onPlaybackProgressRef.current && el.duration && isFinite(el.duration)) {
+            onPlaybackProgressRef.current(el.currentTime, el.duration);
+          }
+
+          // Near-end watchdog: stream EOF often stops slightly before duration without DOM ended event
+          if (
+            !hasTriggeredEndedRef.current &&
+            el.duration &&
+            isFinite(el.duration) &&
+            el.duration > 3 &&
+            el.currentTime >= el.duration - 0.35 &&
+            !el.seeking
+          ) {
+            handleEnded();
           }
         }
       };
@@ -506,15 +557,6 @@ export function useAudioEngine(options?: {
         }
       };
 
-      const handleEnded = () => {
-        // ONLY active deck triggering ended should advance the playlist
-        if (activeDeckRef.current === deck) {
-          setIsPlaying(false);
-          setIsBuffering(false);
-          if (onTrackEnded) onTrackEnded();
-        }
-      };
-
       const handlePlay = () => {
         if (activeDeckRef.current === deck) {
           setIsPlaying(true);
@@ -523,19 +565,43 @@ export function useAudioEngine(options?: {
       };
 
       const handlePause = () => {
+        clearStallTimer();
         if (activeDeckRef.current === deck && !isCrossfadingRef.current) {
           setIsPlaying(false);
           setIsBuffering(false);
         }
       };
 
-      const handleWaiting = () => {
+      const handleWaitingOrStalled = () => {
         if (activeDeckRef.current === deck) {
           setIsBuffering(true);
+
+          // If stream stalls near the end of the track (within 1.8s of duration), trigger completion
+          if (
+            !hasTriggeredEndedRef.current &&
+            el.duration &&
+            isFinite(el.duration) &&
+            el.duration > 3 &&
+            el.duration - el.currentTime <= 1.8
+          ) {
+            clearStallTimer();
+            stallTimer = window.setTimeout(() => {
+              if (
+                activeDeckRef.current === deck &&
+                !hasTriggeredEndedRef.current &&
+                el.duration &&
+                el.duration - el.currentTime <= 2.0
+              ) {
+                console.info(`[AudioEngine] Stream stall near EOF (${el.currentTime.toFixed(1)}s / ${el.duration.toFixed(1)}s), triggering track ended`);
+                handleEnded();
+              }
+            }, 1200);
+          }
         }
       };
 
       const handlePlaying = () => {
+        clearStallTimer();
         if (activeDeckRef.current === deck) {
           setIsPlaying(true);
           setIsBuffering(false);
@@ -550,6 +616,7 @@ export function useAudioEngine(options?: {
       };
 
       const handleSeeking = () => {
+        clearStallTimer();
         if (activeDeckRef.current === deck) {
           setIsBuffering(true);
         }
@@ -562,6 +629,7 @@ export function useAudioEngine(options?: {
       };
 
       const handleError = () => {
+        clearStallTimer();
         if (activeDeckRef.current === deck) {
           const err = el.error;
           let msg = 'Format audio tidak didukung atau kendala jaringan';
@@ -575,6 +643,9 @@ export function useAudioEngine(options?: {
           setPlaybackError(msg);
           setIsBuffering(false);
           setIsPlaying(false);
+          if (onPlaybackErrorRef.current) {
+            onPlaybackErrorRef.current(msg);
+          }
         }
       };
 
@@ -584,7 +655,8 @@ export function useAudioEngine(options?: {
       el.addEventListener('ended', handleEnded);
       el.addEventListener('play', handlePlay);
       el.addEventListener('pause', handlePause);
-      el.addEventListener('waiting', handleWaiting);
+      el.addEventListener('waiting', handleWaitingOrStalled);
+      el.addEventListener('stalled', handleWaitingOrStalled);
       el.addEventListener('playing', handlePlaying);
       el.addEventListener('canplay', handleCanPlay);
       el.addEventListener('seeking', handleSeeking);
@@ -592,13 +664,15 @@ export function useAudioEngine(options?: {
       el.addEventListener('error', handleError);
 
       cleanups.push(() => {
+        clearStallTimer();
         el.removeEventListener('timeupdate', handleTimeUpdate);
         el.removeEventListener('durationchange', handleDurationChange);
         el.removeEventListener('progress', handleProgress);
         el.removeEventListener('ended', handleEnded);
         el.removeEventListener('play', handlePlay);
         el.removeEventListener('pause', handlePause);
-        el.removeEventListener('waiting', handleWaiting);
+        el.removeEventListener('waiting', handleWaitingOrStalled);
+        el.removeEventListener('stalled', handleWaitingOrStalled);
         el.removeEventListener('playing', handlePlaying);
         el.removeEventListener('canplay', handleCanPlay);
         el.removeEventListener('seeking', handleSeeking);
@@ -610,7 +684,7 @@ export function useAudioEngine(options?: {
     return () => {
       cleanups.forEach((fn) => fn());
     };
-  }, [onTrackEnded, onPlaybackProgress]);
+  }, []);
 
   return {
     audioRefA,

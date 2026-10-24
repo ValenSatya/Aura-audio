@@ -120,7 +120,7 @@ export const MiniPlayerWidget: React.FC = () => {
         >
           <div className="w-full h-1 bg-[#34343A] group-hover:h-1.5 rounded-[2px] overflow-hidden transition-all">
             <div
-              className="h-full bg-[#B7F161] transition-all rounded-[2px]"
+              className="h-full bg-[#3B82F6] transition-all rounded-[2px]"
               style={{ width: `${progressPercent}%` }}
             />
           </div>

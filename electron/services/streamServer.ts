@@ -5,6 +5,22 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { YouTubeService } from './youtubeService';
 
+const keepAliveHttpsAgent = new https.Agent({
+  keepAlive: true,
+  keepAliveMsecs: 60000,
+  maxSockets: 64,
+  maxFreeSockets: 16,
+  timeout: 15000,
+});
+
+const keepAliveHttpAgent = new http.Agent({
+  keepAlive: true,
+  keepAliveMsecs: 60000,
+  maxSockets: 64,
+  maxFreeSockets: 16,
+  timeout: 15000,
+});
+
 export class LocalStreamServer {
   private server: http.Server | null = null;
   private port: number = 45454;
@@ -26,12 +42,16 @@ export class LocalStreamServer {
       proxyHeaders['Range'] = req.headers.range;
     }
 
-    const clientProtocol = remoteUrl.startsWith('https') ? https : http;
+    const isHttps = remoteUrl.startsWith('https');
+    const clientProtocol = isHttps ? https : http;
+    const agent = isHttps ? keepAliveHttpsAgent : keepAliveHttpAgent;
+
     const proxyReq = clientProtocol.request(
       remoteUrl,
       {
         method: req.method || 'GET',
         headers: proxyHeaders,
+        agent,
       },
       (proxyRes) => {
         const statusCode = proxyRes.statusCode || 200;
@@ -216,24 +236,35 @@ export class LocalStreamServer {
         }
       });
 
-      this.server.listen(this.port, '127.0.0.1', () => {
-        console.log(`Audio stream proxy server running on http://127.0.0.1:${this.port}`);
+      const tryListen = () => {
+        this.server?.listen(this.port, '0.0.0.0');
+      };
+
+      this.server.on('listening', () => {
+        console.log(`Audio stream proxy server running on http://0.0.0.0:${this.port}`);
         resolve(this.port);
       });
 
       this.server.on('error', (err: any) => {
         if (err.code === 'EADDRINUSE') {
+          console.warn(`Port ${this.port} in use, trying ${this.port + 1}...`);
           this.port++;
-          this.server?.listen(this.port, '127.0.0.1');
+          tryListen();
         } else {
           console.error('Stream server failed to start:', err);
         }
       });
+
+      tryListen();
     });
   }
 
   public getPort(): number {
     return this.port;
+  }
+
+  public getHttpServer(): http.Server | null {
+    return this.server;
   }
 
   public stop(): void {

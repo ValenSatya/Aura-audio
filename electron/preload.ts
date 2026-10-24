@@ -41,6 +41,7 @@ export interface ElectronAPI {
   searchYouTubeMusic: (query: string) => Promise<any[]>;
   searchYouTubeMusicCategorized: (query: string) => Promise<any>;
   getArtistDetails: (browseId: string, artistName?: string) => Promise<any>;
+  getPersonalizedDiscovery: (seeds: { id?: string; title: string; artist: string }[]) => Promise<any>;
   resolveOfficialCover: (title: string, artist: string, fallbackThumb?: string) => Promise<string>;
 
   // Spotify Integration (The Spotube Method)
@@ -73,6 +74,10 @@ export interface ElectronAPI {
   minimizeWindow: () => void;
   maximizeWindow: () => void;
   closeWindow: () => void;
+
+  // AuraSync Cross-Platform Sync
+  broadcastSyncState?: (state: any) => void;
+  onSyncRemoteCommand?: (callback: (cmd: any) => void) => () => void;
 }
 
 const api: ElectronAPI = {
@@ -116,6 +121,8 @@ const api: ElectronAPI = {
   searchYouTubeMusic: (query: string) => ipcRenderer.invoke('ytmusic:search', query),
   searchYouTubeMusicCategorized: (query: string) => ipcRenderer.invoke('ytmusic:searchCategorized', query),
   getArtistDetails: (browseId: string, artistName?: string) => ipcRenderer.invoke('ytmusic:getArtistDetails', browseId, artistName),
+  getPersonalizedDiscovery: (seeds: { id?: string; title: string; artist: string }[]) =>
+    ipcRenderer.invoke('ytmusic:getPersonalizedDiscovery', seeds),
   resolveOfficialCover: (title: string, artist: string, fallbackThumb?: string) =>
     ipcRenderer.invoke('media:resolveOfficialCover', title, artist, fallbackThumb),
 
@@ -174,6 +181,15 @@ const api: ElectronAPI = {
   minimizeWindow: () => ipcRenderer.send('window:minimize'),
   maximizeWindow: () => ipcRenderer.send('window:maximize'),
   closeWindow: () => ipcRenderer.send('window:close'),
+
+  broadcastSyncState: (state) => ipcRenderer.send('sync:broadcast-state', state),
+  onSyncRemoteCommand: (callback) => {
+    const sub = (_event: any, cmd: any) => callback(cmd);
+    ipcRenderer.on('sync:remote-command', sub);
+    return () => {
+      ipcRenderer.removeListener('sync:remote-command', sub);
+    };
+  },
 };
 
 contextBridge.exposeInMainWorld('electronAPI', api);

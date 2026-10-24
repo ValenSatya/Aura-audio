@@ -10,6 +10,7 @@ import {
   YTMusicArtistProfile,
   YTMusicAlbumItem,
   YTMusicTopResult,
+  YTMusicPersonalizedDiscovery,
 } from '../types/music';
 import { useTrackCover } from '../utils/coverArt';
 import {
@@ -34,6 +35,11 @@ import {
   MoreHorizontal,
   CornerDownRight,
   ListPlus,
+  Disc3,
+  RotateCw,
+  ChevronLeft,
+  ChevronRight,
+  Flame,
 } from 'lucide-react';
 
 interface YTMusicViewProps {
@@ -53,6 +59,7 @@ interface YTMusicViewProps {
   onExternalSearchChange?: (q: string) => void;
   customPlaylists?: CustomPlaylist[];
   libraryTracks?: Track[];
+  listeningHistory?: Track[];
   onSelectCustomPlaylist?: (id: string) => void;
   onViewChange?: (view: 'ytmusic' | 'library' | 'custom_playlist' | 'stage') => void;
   dynamicLighting?: {
@@ -64,87 +71,182 @@ interface YTMusicViewProps {
 
 export const DEFAULT_TRENDING_TRACKS: YTMusicTrackItem[] = [];
 
-export const SAMPLE_SONGS: Track[] = [
+export const REAL_POPULAR_SONGS: Track[] = [
   {
-    id: 'sample-1',
-    title: 'Glass Hours',
-    artist: 'Nara Velle',
-    album: 'Soft Static',
-    duration: 222,
+    id: 'd5gf9dXbPi0',
+    title: 'Birds of a Feather',
+    artist: 'Billie Eilish',
+    album: 'HIT ME HARD AND SOFT',
+    duration: 196,
     sourceType: 'youtube',
-    url: 'https://www.youtube.com/watch?v=sample-1',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&h=300&fit=crop',
+    url: 'https://www.youtube.com/watch?v=d5gf9dXbPi0',
+    thumbnailUrl: 'https://i.ytimg.com/vi/d5gf9dXbPi0/hqdefault.jpg',
     isOffline: false,
     dateAdded: Date.now(),
   },
   {
-    id: 'sample-2',
-    title: 'Neon Harbor',
-    artist: 'Kiro Mansa',
-    album: 'Night Ferry',
-    duration: 245,
+    id: 'kPa7bsKwL-8',
+    title: 'Die With A Smile',
+    artist: 'Lady Gaga & Bruno Mars',
+    album: 'Die With A Smile',
+    duration: 251,
     sourceType: 'youtube',
-    url: 'https://www.youtube.com/watch?v=sample-2',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=300&h=300&fit=crop',
+    url: 'https://www.youtube.com/watch?v=kPa7bsKwL-8',
+    thumbnailUrl: 'https://i.ytimg.com/vi/kPa7bsKwL-8/hqdefault.jpg',
     isOffline: false,
     dateAdded: Date.now(),
   },
   {
-    id: 'sample-3',
-    title: 'Paper Moons',
-    artist: 'Ayla Rowe',
-    album: 'Quiet Rooms',
+    id: 'eVli-tstM5E',
+    title: 'Espresso',
+    artist: 'Sabrina Carpenter',
+    album: "Short n' Sweet",
+    duration: 175,
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/watch?v=eVli-tstM5E',
+    thumbnailUrl: 'https://i.ytimg.com/vi/eVli-tstM5E/hqdefault.jpg',
+    isOffline: false,
+    dateAdded: Date.now(),
+  },
+  {
+    id: '4NRXx6U8ABQ',
+    title: 'Blinding Lights',
+    artist: 'The Weeknd',
+    album: 'After Hours',
+    duration: 200,
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/watch?v=4NRXx6U8ABQ',
+    thumbnailUrl: 'https://i.ytimg.com/vi/4NRXx6U8ABQ/hqdefault.jpg',
+    isOffline: false,
+    dateAdded: Date.now(),
+  },
+  {
+    id: 'ic8j13gfnM8',
+    title: 'Cruel Summer',
+    artist: 'Taylor Swift',
+    album: 'Lover',
     duration: 178,
     sourceType: 'youtube',
-    url: 'https://www.youtube.com/watch?v=sample-3',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&h=300&fit=crop',
+    url: 'https://www.youtube.com/watch?v=ic8j13gfnM8',
+    thumbnailUrl: 'https://i.ytimg.com/vi/ic8j13gfnM8/hqdefault.jpg',
     isOffline: false,
     dateAdded: Date.now(),
   },
   {
-    id: 'sample-4',
-    title: 'Low Tide Radio',
-    artist: 'Odan Reyes',
-    album: 'Salt Air',
-    duration: 199,
+    id: 'o04_vHq10F0',
+    title: 'Satu Bulan',
+    artist: 'Bernadya',
+    album: 'Sialnya, Hidup Harus Tetap Berjalan',
+    duration: 194,
     sourceType: 'youtube',
-    url: 'https://www.youtube.com/watch?v=sample-4',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop',
+    url: 'https://www.youtube.com/watch?v=o04_vHq10F0',
+    thumbnailUrl: 'https://i.ytimg.com/vi/o04_vHq10F0/hqdefault.jpg',
     isOffline: false,
     dateAdded: Date.now(),
   },
   {
-    id: 'sample-5',
-    title: 'Slow Signal',
-    artist: 'Nara Velle',
-    album: 'Soft Static',
-    duration: 231,
+    id: 'iHjT50U5V78',
+    title: 'Evaluasi',
+    artist: 'Hindia',
+    album: 'Menari Dengan Bayangan',
+    duration: 204,
     sourceType: 'youtube',
-    url: 'https://www.youtube.com/watch?v=sample-5',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=300&h=300&fit=crop',
+    url: 'https://www.youtube.com/watch?v=iHjT50U5V78',
+    thumbnailUrl: 'https://i.ytimg.com/vi/iHjT50U5V78/hqdefault.jpg',
     isOffline: false,
     dateAdded: Date.now(),
   },
   {
-    id: 'sample-6',
-    title: 'Afterglow Line',
-    artist: 'Kiro Mansa',
-    album: 'Night Ferry',
-    duration: 262,
+    id: 'mxyucVdu8n4',
+    title: 'Lowkey',
+    artist: 'NIKI',
+    album: 'wanna take this downtown?',
+    duration: 171,
     sourceType: 'youtube',
-    url: 'https://www.youtube.com/watch?v=sample-6',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&h=300&fit=crop',
+    url: 'https://www.youtube.com/watch?v=mxyucVdu8n4',
+    thumbnailUrl: 'https://i.ytimg.com/vi/mxyucVdu8n4/hqdefault.jpg',
+    isOffline: false,
+    dateAdded: Date.now(),
+  },
+  {
+    id: 'dvgZkm1xWPE',
+    title: 'Viva La Vida',
+    artist: 'Coldplay',
+    album: 'Viva La Vida',
+    duration: 242,
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/watch?v=dvgZkm1xWPE',
+    thumbnailUrl: 'https://i.ytimg.com/vi/dvgZkm1xWPE/hqdefault.jpg',
+    isOffline: false,
+    dateAdded: Date.now(),
+  },
+  {
+    id: '34Na4j8AVgA',
+    title: 'Starboy',
+    artist: 'The Weeknd',
+    album: 'Starboy',
+    duration: 230,
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/watch?v=34Na4j8AVgA',
+    thumbnailUrl: 'https://i.ytimg.com/vi/34Na4j8AVgA/hqdefault.jpg',
     isOffline: false,
     dateAdded: Date.now(),
   },
 ];
 
+export const SAMPLE_SONGS: Track[] = REAL_POPULAR_SONGS;
+
+export const REAL_POPULAR_ARTISTS = [
+  {
+    id: 'UCERrDZ8oN0U_n9MphMKERcg',
+    name: 'Billie Eilish',
+    subscribers: '106 jt pendengar bulanan',
+    thumbnailUrl:
+      'https://lh3.googleusercontent.com/tQC4rOL6xz6FhmFr0ggQExxyGbYSOsyveXVSnPBh2WjEyIzQ9pMHablLJ-0GlMBrLBlBrbWQGmzrV6KN=w544-h544-l90-rj',
+  },
+  {
+    id: 'UClYV6hHlupm_S_ObS1W-DYw',
+    name: 'The Weeknd',
+    subscribers: '115 jt pendengar bulanan',
+    thumbnailUrl:
+      'https://lh3.googleusercontent.com/U-SAmNOu4TynE818gLCfKsuHZ0U5YNEtO9mrjSI9WCCKERs98LzrCal5kajBBTQNwdcisoB2Bn-pHp4=w544-h544-l90-rj',
+  },
+  {
+    id: 'UCPC0L1d253x-KuMNwa05TpA',
+    name: 'Taylor Swift',
+    subscribers: '98 jt pendengar bulanan',
+    thumbnailUrl:
+      'https://yt3.googleusercontent.com/RCpTA6EXJQyjVFDosWOKa2SMmqkua_lA9mHPDWWciLwgqpZLz-k8rXWRF_367trrQ7up9BUwCbk6kRk=w544-h544-l90-rj',
+  },
+  {
+    id: 'UCZn4r7heNOPY-C43YIywnVA',
+    name: 'Bruno Mars',
+    subscribers: '118 jt pendengar bulanan',
+    thumbnailUrl:
+      'https://lh3.googleusercontent.com/hnefGBrazRhn4Z92bdSZBUENl40ONjRiVDsmZKZh-WZ2iCKE-2c7KKR7SNcZfzLHoRyB3E6as8L87YA=w544-h544-l90-rj',
+  },
+  {
+    id: 'UCUn9Xjvg8fwqpa58-_XO6zw',
+    name: 'Bernadya',
+    subscribers: '12 jt pendengar bulanan',
+    thumbnailUrl:
+      'https://lh3.googleusercontent.com/hxROE1fvLWSxUYAFV3IgMp5vvjN91Jx6oS6uwSVyYN9_fb3I6PLaRa3Ufb4A0awxq4J5UoPFQAQM-Q=w544-h544-l90-rj',
+  },
+  {
+    id: 'UCIaFw5VBEK8qaW6nRpx_qnw',
+    name: 'Coldplay',
+    subscribers: '89 jt pendengar bulanan',
+    thumbnailUrl:
+      'https://lh3.googleusercontent.com/IOKuXtp8PCQ_Fc-vaRKm3sKIXBxFV51gZheLTH5br-YGnWHFQf_Jywcuk7wbprYRoEbQyS_XZY6-nMJX=w544-h544-l90-rj',
+  },
+];
+
 export const SAMPLE_PLAYLISTS = [
-  { id: 'sample-pl-1', name: 'Midnight Drive', trackCount: 24, coverUrl: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=300&h=300&fit=crop' },
-  { id: 'sample-pl-2', name: 'Fokus Belajar', trackCount: 38, coverUrl: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=300&h=300&fit=crop' },
-  { id: 'sample-pl-3', name: 'Santai Sore', trackCount: 52, coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&h=300&fit=crop' },
-  { id: 'sample-pl-4', name: 'Favorit Saya', trackCount: 71, coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&h=300&fit=crop' },
-  { id: 'sample-pl-5', name: 'Perjalanan', trackCount: 19, coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop' },
+  { id: 'sample-pl-1', name: 'Midnight Drive', trackCount: 24, coverUrl: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=400&h=400&fit=crop' },
+  { id: 'sample-pl-2', name: 'Fokus Belajar', trackCount: 38, coverUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400&h=400&fit=crop' },
+  { id: 'sample-pl-3', name: 'Santai Sore', trackCount: 52, coverUrl: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=400&h=400&fit=crop' },
+  { id: 'sample-pl-4', name: 'Energi Positif', trackCount: 60, coverUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&h=400&fit=crop' },
+  { id: 'sample-pl-5', name: 'Perjalanan', trackCount: 29, coverUrl: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400&h=400&fit=crop' },
 ];
 
 const NEUTRAL_CATEGORIES = [
@@ -181,6 +283,20 @@ function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+function formatRelativeTime(timestamp?: number): string {
+  if (!timestamp) return '';
+  const diffSec = Math.floor((Date.now() - timestamp) / 1000);
+  if (diffSec < 60) return 'Baru saja';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} mnt lalu`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour} jam lalu`;
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay === 1) return 'Kemarin';
+  if (diffDay < 7) return `${diffDay} hr lalu`;
+  return new Date(timestamp).toLocaleDateString('id-ID', { month: 'short', day: 'numeric' });
 }
 
 // Subcomponent: Most Played Album Card with Official Cover Art lookup
@@ -450,6 +566,7 @@ export const YTMusicView: React.FC<YTMusicViewProps> = ({
   onExternalSearchChange,
   customPlaylists = [],
   libraryTracks = [],
+  listeningHistory = [],
   onSelectCustomPlaylist,
   onViewChange,
   dynamicLighting,
@@ -500,6 +617,14 @@ export const YTMusicView: React.FC<YTMusicViewProps> = ({
   const [selectedArtistProfile, setSelectedArtistProfile] = useState<YTMusicArtistProfile | null>(null);
   const [loadingArtist, setLoadingArtist] = useState(false);
   const [artistDiscographyTab, setArtistDiscographyTab] = useState<'all' | 'albums' | 'singles'>('all');
+
+  // Dedicated Home Page Redesign States (Juxtopposed Apple Music Redesign)
+  const [activeHeroIndex, setActiveHeroIndex] = useState(0);
+  const [homeFilter, setHomeFilter] = useState<'all' | 'music' | 'artists'>('all');
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [personalizedData, setPersonalizedData] = useState<YTMusicPersonalizedDiscovery | null>(null);
+  const [isLoadingPersonalized, setIsLoadingPersonalized] = useState(false);
 
   const handleOpenArtist = async (artist: {
     id?: string;
@@ -682,6 +807,121 @@ export const YTMusicView: React.FC<YTMusicViewProps> = ({
     };
   };
 
+  // Live dynamic discover data fetched from YouTube Music
+  const [dynamicTrendingSongs, setDynamicTrendingSongs] = useState<Track[]>([]);
+  const [dynamicPopularArtists, setDynamicPopularArtists] = useState<any[]>([]);
+
+  // Fetch real personalized discover data from YouTube Music on mount, on refresh, or when taste signals change
+  useEffect(() => {
+    let isCancelled = false;
+    async function fetchPersonalizedDiscovery() {
+      if (!window.electronAPI?.getPersonalizedDiscovery) return;
+      setIsLoadingPersonalized(true);
+
+      // Calculate real taste affinity from cumulative history and library
+      // (Frequency-weighted: An artist played 1 time will NEVER overwrite the user's core taste anchor!)
+      const artistCounts = new Map<string, { count: number; tracks: Track[] }>();
+
+      // 1. Weight listening history
+      (listeningHistory || []).forEach((t) => {
+        if (!t || !t.artist || t.artist.toLowerCase().includes('unknown')) return;
+        const norm = t.artist.trim();
+        if (!artistCounts.has(norm)) {
+          artistCounts.set(norm, { count: 0, tracks: [] });
+        }
+        const entry = artistCounts.get(norm)!;
+        entry.count += 1;
+        if (entry.tracks.length < 3) entry.tracks.push(t);
+      });
+
+      // 2. Weight library tracks (+1.5 weight per saved song)
+      (libraryTracks || []).forEach((t) => {
+        if (!t || !t.artist || t.artist.toLowerCase().includes('unknown')) return;
+        const norm = t.artist.trim();
+        if (!artistCounts.has(norm)) {
+          artistCounts.set(norm, { count: 0, tracks: [] });
+        }
+        const entry = artistCounts.get(norm)!;
+        entry.count += 1.5;
+        if (entry.tracks.length < 3) entry.tracks.push(t);
+      });
+
+      let seeds: { id?: string; title: string; artist: string }[] = [];
+
+      if (artistCounts.size > 0) {
+        // Sort artists by cumulative affinity score descending
+        const sorted = Array.from(artistCounts.entries()).sort(
+          (a, b) => b[1].count - a[1].count
+        );
+        // Take top 4 artists as seeds
+        seeds = sorted.slice(0, 4).map(([artist, data]) => ({
+          id: data.tracks[0]?.id,
+          title: data.tracks[0]?.title || artist,
+          artist,
+        }));
+      } else {
+        const fallback = (listeningHistory?.length ? listeningHistory : (libraryTracks || [])).slice(0, 5);
+        seeds = fallback.map((t) => ({ id: t.id, title: t.title, artist: t.artist }));
+      }
+
+      try {
+        const data: YTMusicPersonalizedDiscovery = await window.electronAPI.getPersonalizedDiscovery(seeds);
+        if (isCancelled || !data) return;
+
+        setPersonalizedData(data);
+        if (data.discoveryTracks && data.discoveryTracks.length > 0) {
+          setDynamicTrendingSongs(data.discoveryTracks.map(convertItemToTrack));
+        }
+        if (data.relatedArtists && data.relatedArtists.length > 0) {
+          const junkKeywords = [
+            'relax',
+            'chill beats',
+            'lofi beats',
+            'music channel',
+            'sleep music',
+            'study music',
+            'sound library',
+            'jazz lounge',
+            'records',
+            'various artists',
+          ];
+          const filtered = data.relatedArtists
+            .filter((a: any) => {
+              if (!a || !a.name) return false;
+              const n = a.name.toLowerCase();
+              if (junkKeywords.some((k) => n.includes(k))) return false;
+              if (a.thumbnailUrl && a.thumbnailUrl.includes('photo-1511671782779')) return false;
+              return true;
+            })
+            .map((a: any, idx: number) => ({
+              id: a.id || a.browseId || `art-live-${idx}`,
+              browseId: a.browseId,
+              name: a.name,
+              subscribers: a.subscribers || 'Artis Terkait',
+              thumbnailUrl:
+                a.thumbnailUrl && !a.thumbnailUrl.includes('photo-1511671782779')
+                  ? a.thumbnailUrl
+                  : REAL_POPULAR_ARTISTS[idx % REAL_POPULAR_ARTISTS.length].thumbnailUrl,
+            }));
+          setDynamicPopularArtists(filtered);
+        }
+      } catch (err) {
+        console.warn('Personalized discovery fallback:', err);
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingPersonalized(false);
+        }
+      }
+    }
+
+    fetchPersonalizedDiscovery();
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    refreshKey,
+  ]);
+
   // Load tracks of a selected playlist
   const openPlaylistDetails = async (pl: UserPlaylist) => {
     setSelectedPlaylist(pl);
@@ -776,391 +1016,987 @@ export const YTMusicView: React.FC<YTMusicViewProps> = ({
     }
   };
 
-  // Smart diverse selection for the 3 featured cards
-  const featured1 =
-    libraryTracks?.[0] ||
-    customPlaylists?.[0]?.tracks?.[0] ||
-    (currentActiveList?.[0] ? convertItemToTrack(currentActiveList[0]) : null) ||
-    SAMPLE_SONGS[0];
+  // Curated spotlight showcase items for the Apple Music Redesign Hero Banner (Personalized)
+  const spotlightItems = useMemo(() => {
+    const list: {
+      track: Track;
+      badge: string;
+      tagline: string;
+      genre: string;
+    }[] = [];
 
-  // For featured2 (Pilihan hari ini), pick a track with different artist/album if possible
-  const featured2 = useMemo(() => {
-    if (!libraryTracks || libraryTracks.length === 0) return SAMPLE_SONGS[1];
-    // Find track from library with different artist
-    const differentArtist = libraryTracks.find(
-      (t) =>
-        t.id !== featured1.id &&
-        t.artist &&
-        (!featured1.artist || !t.artist.toLowerCase().includes(featured1.artist.toLowerCase()))
-    );
-    if (differentArtist) return differentArtist;
-    // Or from another custom playlist
-    if (customPlaylists && customPlaylists.length > 1 && customPlaylists[1]?.tracks?.[0]) {
-      return customPlaylists[1].tracks[0];
+    if (personalizedData?.spotlightTrack) {
+      list.push({
+        track: convertItemToTrack(personalizedData.spotlightTrack),
+        badge: 'TERINSPIRASI DARI SELERA MUSIKMU',
+        tagline: personalizedData.seedArtist
+          ? `Menjelajahi spektrum musik baru sejalan dengan aliran ${personalizedData.seedArtist}`
+          : 'Track unggulan terkurasi khusus untukmu',
+        genre: personalizedData.vibeTitle,
+      });
     }
-    // Fallback to sample or different index to avoid monotony
-    return libraryTracks[1] && libraryTracks[1].id !== featured1.id
-      ? libraryTracks[1]
-      : SAMPLE_SONGS[1];
-  }, [libraryTracks, customPlaylists, featured1]);
 
-  // For featured3 (Rilis terbaru), pick another diverse track
-  const featured3 = useMemo(() => {
-    if (!libraryTracks || libraryTracks.length === 0) return SAMPLE_SONGS[2];
-    const different = libraryTracks.find(
-      (t) =>
-        t.id !== featured1.id &&
-        t.id !== featured2.id &&
-        t.artist &&
-        (!featured1.artist || !t.artist.toLowerCase().includes(featured1.artist.toLowerCase())) &&
-        (!featured2.artist || !t.artist.toLowerCase().includes(featured2.artist.toLowerCase()))
-    );
-    if (different) return different;
-    if (customPlaylists && customPlaylists.length > 2 && customPlaylists[2]?.tracks?.[0]) {
-      return customPlaylists[2].tracks[0];
+    if (personalizedData?.discoveryTracks && personalizedData.discoveryTracks.length > 1) {
+      const moreDiscovery = personalizedData.discoveryTracks.slice(1, 4).map((dt, idx) => ({
+        track: convertItemToTrack(dt),
+        badge: idx === 0 ? 'VIBE PENEMUAN' : idx === 1 ? 'ALIRAN SERUMPUN' : 'REKOMENDASI PINTAR',
+        tagline: 'Karya musik berfrekuensi serupa yang belum pernah kamu dengar',
+        genre: personalizedData.vibeTitle,
+      }));
+      list.push(...moreDiscovery);
     }
-    return libraryTracks[2] && libraryTracks[2].id !== featured1.id && libraryTracks[2].id !== featured2.id
-      ? libraryTracks[2]
-      : SAMPLE_SONGS[2];
-  }, [libraryTracks, customPlaylists, featured1, featured2]);
 
-  const isHomeView = activeTab === 'playlists' && !selectedPlaylist;
+    // Fallbacks if discovery is loading or empty
+    if (list.length === 0) {
+      const pool = [
+        ...(libraryTracks || []),
+        ...(dynamicTrendingSongs.length > 0 ? dynamicTrendingSongs : []),
+        ...REAL_POPULAR_SONGS,
+      ];
+      pool.slice(0, 4).forEach((t, i) => {
+        list.push({
+          track: t,
+          badge: i === 0 ? 'PILIHAN HARI INI' : 'HEAVY ROTATION',
+          tagline: 'Track paling menonjol yang dikurasi khusus untukmu',
+          genre: t.album || 'Koleksi Musik',
+        });
+      });
+    }
+
+    return list;
+  }, [personalizedData, libraryTracks, dynamicTrendingSongs, refreshKey]);
+
+  // Curated mood playlists for Home (Refined, authentic Apple Music style)
+  const homeCuratedPlaylists = useMemo(() => {
+    const list = [
+      {
+        id: 'curated-chill',
+        title: 'Santai Sore',
+        subtitle: 'Akustik, Lo-fi & Chill',
+        coverUrl: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=400&h=400&fit=crop',
+      },
+      {
+        id: 'curated-night',
+        title: 'Midnight Drive',
+        subtitle: 'Synthwave & Melodic Night',
+        coverUrl: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=400&h=400&fit=crop',
+      },
+      {
+        id: 'curated-focus',
+        title: 'Fokus Belajar',
+        subtitle: 'Piano Instrumental & Klasik',
+        coverUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400&h=400&fit=crop',
+      },
+      {
+        id: 'curated-energy',
+        title: 'Energi Positif',
+        subtitle: 'Pop Hits & Semangat Pagi',
+        coverUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&h=400&fit=crop',
+      },
+      {
+        id: 'curated-travel',
+        title: 'Perjalanan & Roadtrip',
+        subtitle: 'Indie Rock & Petualangan',
+        coverUrl: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400&h=400&fit=crop',
+      },
+      {
+        id: 'curated-sleep',
+        title: 'Malam Tenang',
+        subtitle: 'Ambient & Deep Sleep',
+        coverUrl: 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=400&h=400&fit=crop',
+      },
+    ];
+
+    if (customPlaylists && customPlaylists.length > 0) {
+      const real = customPlaylists.slice(0, 3).map((pl) => {
+        const count = pl.tracks?.length || 0;
+        return {
+          id: pl.id,
+          title: pl.name,
+          subtitle: count > 0 ? `Playlist • ${count} lagu` : 'Playlist kustom',
+          coverUrl: pl.tracks?.[0]?.thumbnailUrl || null,
+        };
+      });
+      return [...real, ...list].slice(0, 6);
+    }
+
+    return list;
+  }, [customPlaylists]);
+
+  // Real, globally recognized popular artists with live dynamic query fallback
+  const popularArtistsList = useMemo(() => {
+    if (dynamicPopularArtists.length > 0) {
+      const valid = dynamicPopularArtists.filter(
+        (art) =>
+          art &&
+          art.name &&
+          art.thumbnailUrl &&
+          !art.thumbnailUrl.includes('photo-1511671782779')
+      );
+      if (valid.length > 0) return valid;
+    }
+    return REAL_POPULAR_ARTISTS;
+  }, [dynamicPopularArtists]);
+
+  const isHomeView = activeTab === 'playlists' && !selectedPlaylist && !selectedArtistProfile;
 
   return (
     <div className="flex-1 flex flex-col h-full bg-transparent overflow-y-auto select-none relative">
       {/* Main Content Area */}
-      <div className="px-9 py-6 pb-28 flex-1">
-        {isHomeView ? (
-          /* SECTION 6.1: BERANDA DENGAN 3 KARTU SOROTAN DAN DUA KOLOM TERISI PENUH */
-          <div className="space-y-6 animate-in fade-in duration-200">
-            {/* 3 Kartu Sorotan Berdampingan (Grid 3 kolom sama lebar, Tinggi 200px / 220px pada >= 1600, Radius 10px, Jarak 16px) */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Kartu 1: Lanjutkan mendengarkan */}
-              {(() => {
-                const s1 = featured1 || SAMPLE_SONGS[0];
-                return (
-                  <div className="h-[200px] 2xl:h-[220px] rounded-[10px] p-[22px] bg-[#17171A] flex justify-between select-none relative group">
-                    <div className="flex flex-col justify-between flex-1 min-w-0 pr-4">
-                      <div className="space-y-1">
-                        <span className="text-[13px] text-[#8D8D93] block font-normal">
-                          Lanjutkan mendengarkan
-                        </span>
-                        <h3 className="text-[24px] font-light text-[#F4F4F0] tracking-tight leading-tight line-clamp-2">
-                          {s1.title}
-                        </h3>
-                        <p className="text-[13px] text-[#8D8D93] truncate">
-                          {s1.artist}
-                        </p>
-                      </div>
+      <div className="px-9 py-7 pb-28 flex-1">
+        {selectedArtistProfile ? (
+          /* DEDICATED ARTIST PROFILE VIEW */
+          <div className="space-y-8 animate-in fade-in duration-200 -mx-9 -mt-7">
+            {/* Artist Hero Header */}
+            <div className="relative min-h-[300px] md:min-h-[340px] w-full overflow-hidden flex flex-col justify-between p-7 md:p-9 select-none bg-[#121215]">
+              {/* Blurred Ambient Backdrop */}
+              {selectedArtistProfile.bannerUrl && (
+                <>
+                  <img
+                    src={selectedArtistProfile.bannerUrl}
+                    alt={selectedArtistProfile.name}
+                    className="absolute inset-0 w-full h-full object-cover object-center opacity-30 filter blur-2xl scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0E0E11] via-[#0E0E11]/70 to-black/40" />
+                </>
+              )}
 
-                      <div>
-                        <button
-                          onClick={() => onPlayTrack(s1)}
-                          className="w-12 h-12 rounded-full bg-[#F4F4F0] text-[#0B0B0C] flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer"
-                          aria-label={`Putar ${s1.title}`}
-                          title={`Putar ${s1.title}`}
-                        >
-                          <Play size={20} fill="currentColor" className="ml-0.5" />
-                        </button>
-                      </div>
-                    </div>
+              {/* Top Bar: Back Button */}
+              <div className="relative z-10">
+                <button
+                  onClick={() => setSelectedArtistProfile(null)}
+                  className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/50 hover:bg-black/80 text-[#F4F4F0] text-xs font-medium backdrop-blur-md border border-white/10 transition-all cursor-pointer shadow-md active:scale-95"
+                >
+                  <ArrowLeft size={15} />
+                  <span>Kembali</span>
+                </button>
+              </div>
 
-                    <div className="w-[120px] h-[120px] 2xl:w-[140px] 2xl:h-[140px] rounded-[8px] overflow-hidden flex-shrink-0 bg-[#1F1F23] self-end">
-                      {s1.thumbnailUrl ? (
-                        <img src={s1.thumbnailUrl} alt={s1.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[#8D8D93]">
-                          <Music size={32} />
-                        </div>
-                      )}
-                    </div>
+              {/* Artist Header Metadata with Portrait and Info */}
+              <div className="relative z-10 flex items-end gap-6 pt-6">
+                {selectedArtistProfile.bannerUrl && (
+                  <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full overflow-hidden bg-[#1D1D24] border-2 border-white/10 shadow-2xl flex-shrink-0">
+                    <img
+                      src={selectedArtistProfile.bannerUrl}
+                      alt={selectedArtistProfile.name}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                );
-              })()}
-
-              {/* Kartu 2: Pilihan hari ini */}
-              {(() => {
-                const s2 = featured2 || SAMPLE_SONGS[1];
-                return (
-                  <div className="h-[200px] 2xl:h-[220px] rounded-[10px] p-[22px] bg-[#17171A] flex justify-between select-none relative group">
-                    <div className="flex flex-col justify-between flex-1 min-w-0 pr-4">
-                      <div className="space-y-1">
-                        <span className="text-[13px] text-[#8D8D93] block font-normal">
-                          Pilihan hari ini
-                        </span>
-                        <h3 className="text-[24px] font-light text-[#F4F4F0] tracking-tight leading-tight line-clamp-2">
-                          {s2.title}
-                        </h3>
-                        <p className="text-[13px] text-[#8D8D93] truncate">
-                          {s2.artist}
-                        </p>
-                      </div>
-
-                      <div>
-                        <button
-                          onClick={() => onPlayTrack(s2)}
-                          className="w-12 h-12 rounded-full bg-[#F4F4F0] text-[#0B0B0C] flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer"
-                          aria-label={`Putar ${s2.title}`}
-                          title={`Putar ${s2.title}`}
-                        >
-                          <Play size={20} fill="currentColor" className="ml-0.5" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="w-[120px] h-[120px] 2xl:w-[140px] 2xl:h-[140px] rounded-[8px] overflow-hidden flex-shrink-0 bg-[#1F1F23] self-end">
-                      {s2.thumbnailUrl ? (
-                        <img src={s2.thumbnailUrl} alt={s2.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[#8D8D93]">
-                          <Music size={32} />
-                        </div>
-                      )}
-                    </div>
+                )}
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-xs text-blue-400 font-medium">
+                    <CheckCircle2 size={15} />
+                    <span>Artis Terverifikasi</span>
                   </div>
-                );
-              })()}
 
-              {/* Kartu 3: Rilis terbaru */}
-              {(() => {
-                const s3 = featured3 || SAMPLE_SONGS[2];
-                return (
-                  <div className="h-[200px] 2xl:h-[220px] rounded-[10px] p-[22px] bg-[#17171A] flex justify-between select-none relative group">
-                    <div className="flex flex-col justify-between flex-1 min-w-0 pr-4">
-                      <div className="space-y-1">
-                        <span className="text-[13px] text-[#8D8D93] block font-normal">
-                          Rilis terbaru
-                        </span>
-                        <h3 className="text-[24px] font-light text-[#F4F4F0] tracking-tight leading-tight line-clamp-2">
-                          {s3.title}
-                        </h3>
-                        <p className="text-[13px] text-[#8D8D93] truncate">
-                          {s3.artist}
-                        </p>
-                      </div>
+                  <h1 className="text-3xl md:text-5xl font-bold text-[#F4F4F0] tracking-tight">
+                    {selectedArtistProfile.name}
+                  </h1>
 
-                      <div>
-                        <button
-                          onClick={() => onPlayTrack(s3)}
-                          className="w-12 h-12 rounded-full bg-[#F4F4F0] text-[#0B0B0C] flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer"
-                          aria-label={`Putar ${s3.title}`}
-                          title={`Putar ${s3.title}`}
-                        >
-                          <Play size={20} fill="currentColor" className="ml-0.5" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="w-[120px] h-[120px] 2xl:w-[140px] 2xl:h-[140px] rounded-[8px] overflow-hidden flex-shrink-0 bg-[#1F1F23] self-end">
-                      {s3.thumbnailUrl ? (
-                        <img src={s3.thumbnailUrl} alt={s3.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[#8D8D93]">
-                          <Music size={32} />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
+                  <p className="text-[13px] text-zinc-400">
+                    {selectedArtistProfile.subscribers
+                      ? `${selectedArtistProfile.subscribers} pendengar bulanan`
+                      : 'Artis Populer'}
+                  </p>
+                </div>
+              </div>
             </div>
 
-            {/* Area Dua Kolom (Section 6.1: Kiri 1.7fr Terakhir diputar 6 lagu, Kanan 1fr Playlist kamu 5 baris) */}
-            <div className="grid grid-cols-1 lg:grid-cols-[1.7fr_1fr] gap-4 items-start pt-2">
-              {/* Kolom Kiri: Terakhir Diputar (1.7fr) */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between px-1">
-                  <h2 className="text-[18px] font-normal text-[#F4F4F0]">
-                    Terakhir diputar
-                  </h2>
+            {/* Artist Body Content */}
+            <div className="px-9 space-y-8 pb-10">
+              {/* Action Controls */}
+              <div className="flex items-center gap-4">
+                <button
+                  disabled={selectedArtistProfile.topSongs.length === 0}
+                  onClick={() => {
+                    if (selectedArtistProfile.topSongs.length > 0) {
+                      if (onPlayPlaylist) {
+                        onPlayPlaylist(selectedArtistProfile.topSongs.map(convertItemToTrack), 0);
+                      } else {
+                        onPlayTrack(convertItemToTrack(selectedArtistProfile.topSongs[0]));
+                      }
+                    }
+                  }}
+                  className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  title="Putar Lagu Teratas"
+                >
+                  <Play size={20} fill="currentColor" className="ml-0.5" />
+                </button>
+
+                <button
+                  disabled={selectedArtistProfile.topSongs.length === 0}
+                  onClick={() => {
+                    if (selectedArtistProfile.topSongs.length > 0) {
+                      if (onPlayShuffled) {
+                        onPlayShuffled(selectedArtistProfile.topSongs.map(convertItemToTrack));
+                      } else if (onPlayPlaylist) {
+                        onPlayPlaylist(selectedArtistProfile.topSongs.map(convertItemToTrack));
+                      }
+                    }
+                  }}
+                  className="w-11 h-11 rounded-full bg-[#1A1A20] hover:bg-[#25252D] text-zinc-400 hover:text-white flex items-center justify-center border border-white/[0.06] transition-colors cursor-pointer disabled:opacity-40"
+                  title="Acak Lagu Teratas"
+                >
+                  <Shuffle size={18} />
+                </button>
+
+                {onDownloadBatch && selectedArtistProfile.topSongs.length > 0 && (
+                  <button
+                    onClick={() => onDownloadBatch(selectedArtistProfile.topSongs.map(convertItemToTrack))}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#1A1A20] hover:bg-[#25252D] border border-white/[0.06] text-xs font-medium text-[#F4F4F0] transition-colors cursor-pointer"
+                    title="Unduh seluruh lagu teratas artis ini"
+                  >
+                    <Download size={14} className="text-[#F4F4F0]" />
+                    <span>Unduh Semua</span>
+                  </button>
+                )}
+
+                {loadingArtist && (
+                  <div className="flex items-center gap-2 text-xs text-zinc-400">
+                    <Loader2 size={16} className="animate-spin text-white" />
+                    <span>Memuat profil artis...</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Section: Populer */}
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold tracking-tight text-white">Lagu Populer</h2>
+
+                {loadingArtist && selectedArtistProfile.topSongs.length === 0 ? (
+                  <div className="space-y-2 animate-pulse">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="h-14 rounded-[12px] bg-[#141418]" />
+                    ))}
+                  </div>
+                ) : selectedArtistProfile.topSongs.length > 0 ? (
+                  <div className="space-y-1">
+                    {selectedArtistProfile.topSongs.map((track, idx) => (
+                      <AllSongsCompactRow
+                        key={track.id}
+                        item={track}
+                        isSelected={selectedTrackIds.has(track.id)}
+                        onToggleSelect={(e) => handleToggleSelectTrack(track.id, e)}
+                        onPlay={() => {
+                          if (onPlayPlaylist) {
+                            onPlayPlaylist(selectedArtistProfile.topSongs.map(convertItemToTrack), idx);
+                          } else {
+                            onPlayTrack(convertItemToTrack(track));
+                          }
+                        }}
+                        rank={idx + 1}
+                        onPlayNext={() => onPlayNext?.(convertItemToTrack(track))}
+                        onAddToPlaylist={() => onOpenAddToPlaylistModal?.([convertItemToTrack(track)])}
+                        onAddToQueue={() => onAddTracksToQueue([convertItemToTrack(track)])}
+                        onDownload={() => onStartDownload(convertItemToTrack(track))}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-8 text-center text-xs text-zinc-400 bg-[#141418] rounded-[12px] border border-white/[0.04]">
+                    Tidak ada lagu populer yang ditemukan.
+                  </div>
+                )}
+              </div>
+
+              {/* Section: Diskografi */}
+              {(selectedArtistProfile.albums.length > 0 || selectedArtistProfile.singles.length > 0) && (
+                <div className="space-y-4 pt-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold tracking-tight text-white">Diskografi</h2>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setArtistDiscographyTab('all')}
+                        className={`h-8 px-3.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
+                          artistDiscographyTab === 'all'
+                            ? 'bg-white text-black'
+                            : 'bg-[#141418] hover:bg-[#1A1A20] text-zinc-400 hover:text-white border border-white/[0.04]'
+                        }`}
+                      >
+                        Semua
+                      </button>
+                      {selectedArtistProfile.albums.length > 0 && (
+                        <button
+                          onClick={() => setArtistDiscographyTab('albums')}
+                          className={`h-8 px-3.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
+                            artistDiscographyTab === 'albums'
+                              ? 'bg-white text-black'
+                              : 'bg-[#141418] hover:bg-[#1A1A20] text-zinc-400 hover:text-white border border-white/[0.04]'
+                          }`}
+                        >
+                          Album
+                        </button>
+                      )}
+                      {selectedArtistProfile.singles.length > 0 && (
+                        <button
+                          onClick={() => setArtistDiscographyTab('singles')}
+                          className={`h-8 px-3.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
+                            artistDiscographyTab === 'singles'
+                              ? 'bg-white text-black'
+                              : 'bg-[#141418] hover:bg-[#1A1A20] text-zinc-400 hover:text-white border border-white/[0.04]'
+                          }`}
+                        >
+                          Single & EP
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {(artistDiscographyTab === 'all'
+                      ? [...selectedArtistProfile.albums, ...selectedArtistProfile.singles]
+                      : artistDiscographyTab === 'albums'
+                      ? selectedArtistProfile.albums
+                      : selectedArtistProfile.singles
+                    ).map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => handleSearch(item.title, true)}
+                        className="group p-3 rounded-[14px] bg-[#141418] hover:bg-[#1A1A20] border border-white/[0.04] hover:border-white/[0.08] transition-all cursor-pointer flex flex-col select-none"
+                      >
+                        <div className="relative aspect-square w-full rounded-[10px] overflow-hidden bg-[#1D1D24] mb-2.5 shadow-md border border-white/[0.06]">
+                          {item.thumbnailUrl ? (
+                            <img src={item.thumbnailUrl} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-zinc-400">
+                              <Music size={32} />
+                            </div>
+                          )}
+                          <div className="absolute bottom-2 right-2 w-9 h-9 rounded-full bg-white text-black flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all shadow-xl">
+                            <Play size={15} fill="currentColor" className="ml-0.5" />
+                          </div>
+                        </div>
+                        <p className="text-xs font-semibold text-white tracking-tight truncate group-hover:text-zinc-200 transition-colors">
+                          {item.title}
+                        </p>
+                        <p className="text-[11px] text-zinc-400 truncate mt-0.5">
+                          {item.year ? `${item.year} • ` : ''}{item.type || 'Album'}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : isHomeView ? (
+          /* SECTION: JUXTOPPOSED APPLE MUSIC REDESIGN HOME LAYOUT (PREMIUM 7 TINY FIXES) */
+          <div className="space-y-10 animate-in fade-in duration-200">
+            {/* 1. Header Beranda & Aksi Cepat */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-1">
+              <div>
+                <span className="text-[10px] font-semibold tracking-wider text-zinc-400 uppercase block">
+                  {getGreeting()} • Eksplorasi Kurasi Musik
+                </span>
+                <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight mt-0.5">
+                  Dengarkan Sekarang
+                </h1>
+              </div>
+
+              {/* Action Controls: Segarkan & Filter Kategori */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Tombol Segarkan (Juxtopposed: refresh recommendations anytime) */}
+                <button
+                  onClick={() => {
+                    setIsRefreshing(true);
+                    setRefreshKey((k) => k + 1);
+                    setTimeout(() => setIsRefreshing(false), 500);
+                  }}
+                  className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#141418] hover:bg-[#1A1A20] text-zinc-300 hover:text-white border border-white/[0.04] hover:border-white/[0.08] text-xs font-medium transition-all duration-200 cursor-pointer active:scale-95 shadow-sm"
+                  title="Segarkan rekomendasi musik"
+                >
+                  <RotateCw
+                    size={14}
+                    strokeWidth={1.75}
+                    className={`transition-transform duration-500 ${
+                      isRefreshing ? 'rotate-180 text-white' : ''
+                    }`}
+                  />
+                  <span>Segarkan</span>
+                </button>
+
+                {/* Filter Pills */}
+                <div className="flex items-center gap-1.5 p-1 rounded-full bg-[#141418] border border-white/[0.04]">
+                  {(
+                    [
+                      { id: 'all', label: 'Semua' },
+                      { id: 'music', label: 'Musik' },
+                      { id: 'artists', label: 'Artis' },
+                    ] as const
+                  ).map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => setHomeFilter(f.id)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 cursor-pointer ${
+                        homeFilter === f.id
+                          ? 'bg-white text-black font-semibold shadow-sm'
+                          : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Hero Spotlight Carousel Banner (Integrated Editorial Showcase) */}
+            {(homeFilter === 'all' || homeFilter === 'music') && spotlightItems.length > 0 && (() => {
+              const currentSpotlight = spotlightItems[activeHeroIndex % spotlightItems.length];
+              const heroTrack = currentSpotlight.track;
+
+              // Intelligent editorial title sanitization (e.g. avoid raw placeholder "RADIO")
+              const rawTitle = (heroTrack.title || '').trim();
+              const isGenericTitle =
+                rawTitle.toUpperCase() === 'RADIO' ||
+                rawTitle.toUpperCase() === 'MIX' ||
+                rawTitle.toUpperCase() === 'TRACK' ||
+                rawTitle.length <= 2;
+              const displayTitle = isGenericTitle
+                ? (heroTrack.album ? `Radio — ${heroTrack.album}` : `Stasiun Radio ${heroTrack.artist}`)
+                : rawTitle;
+
+              // Companion songs to populate the right-side "Di Stasiun Ini" column
+              const companionPool =
+                personalizedData?.discoveryTracks && personalizedData.discoveryTracks.length > 1
+                  ? personalizedData.discoveryTracks.map(convertItemToTrack)
+                  : dynamicTrendingSongs.length > 0
+                  ? dynamicTrendingSongs
+                  : REAL_POPULAR_SONGS;
+              const companionTracks = companionPool
+                .filter((t) => t.id !== heroTrack.id)
+                .slice(0, 3);
+
+              return (
+                <div className="relative overflow-hidden rounded-[22px] bg-[#131317] border border-white/[0.06] p-6 lg:p-7 shadow-[0_12px_40px_rgba(0,0,0,0.45)] select-none group transition-all duration-300">
+                  {/* Dynamic Cover Ambient Glow */}
+                  {heroTrack.thumbnailUrl && (
+                    <div
+                      className="absolute -right-16 -bottom-16 w-96 h-96 bg-cover bg-center opacity-20 filter blur-3xl scale-125 pointer-events-none transition-all duration-700"
+                      style={{ backgroundImage: `url(${heroTrack.thumbnailUrl})` }}
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#121216]/95 via-[#131318]/90 to-[#101014]/95 pointer-events-none" />
+
+                  {/* Main Container: 2-Column Responsive Split */}
+                  <div className="relative z-10 flex flex-col lg:flex-row items-stretch justify-between gap-6 lg:gap-8">
+                    {/* Left Section: Featured Spotlight with Artwork + Editorial Info (Close Proximity) */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 flex-1 min-w-0">
+                      {/* Cover Art with deep drop shadow, subtle border & hover play */}
+                      <div className="relative w-44 h-44 sm:w-48 sm:h-48 lg:w-52 lg:h-52 rounded-[18px] overflow-hidden flex-shrink-0 bg-[#1A1A22] shadow-[0_16px_36px_rgba(0,0,0,0.6)] border border-white/[0.08] group/art">
+                        {heroTrack.thumbnailUrl ? (
+                          <img
+                            src={heroTrack.thumbnailUrl}
+                            alt={displayTitle}
+                            className="w-full h-full object-cover group-hover/art:scale-105 transition-transform duration-500 ease-out"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-zinc-500">
+                            <Music size={44} strokeWidth={1.5} />
+                          </div>
+                        )}
+                        {/* Play Overlay */}
+                        <div
+                          onClick={() => onPlayTrack(heroTrack)}
+                          className="absolute inset-0 bg-black/40 opacity-0 group-hover/art:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+                        >
+                          <div className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center shadow-xl transform scale-90 group-hover/art:scale-100 transition-transform">
+                            <Play size={20} fill="currentColor" className="ml-0.5" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Metadata & Actions (Direct proximity to artwork) */}
+                      <div className="flex flex-col justify-between flex-1 min-w-0 py-1 space-y-3">
+                        <div>
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <span className="text-[10px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-white/[0.08] text-zinc-200 border border-white/[0.08] w-fit">
+                              {currentSpotlight.badge}
+                            </span>
+                            <span className="text-xs text-zinc-400 font-medium truncate max-w-xs">
+                              {currentSpotlight.genre}
+                            </span>
+                          </div>
+
+                          <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight line-clamp-2">
+                            {displayTitle}
+                          </h2>
+                          <p className="text-sm sm:text-base font-semibold text-zinc-300 mt-1 truncate">
+                            {heroTrack.artist}
+                          </p>
+                          <p className="text-xs sm:text-sm text-zinc-400 font-normal line-clamp-2 mt-1.5 leading-relaxed max-w-lg">
+                            {currentSpotlight.tagline}
+                          </p>
+                        </div>
+
+                        {/* Action Buttons Row */}
+                        <div className="flex items-center gap-2.5 pt-2 flex-wrap">
+                          <button
+                            onClick={() => onPlayTrack(heroTrack)}
+                            className="px-5 h-10 rounded-full bg-white hover:bg-zinc-200 text-black font-semibold text-xs sm:text-sm flex items-center gap-2 shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
+                            title={`Putar ${displayTitle}`}
+                          >
+                            <Play size={15} fill="currentColor" className="ml-0.5" />
+                            <span>Putar Sekarang</span>
+                          </button>
+
+                          <button
+                            onClick={() => onAddTracksToQueue([heroTrack])}
+                            className="px-4 h-10 rounded-full bg-white/[0.06] hover:bg-white/[0.1] text-zinc-200 hover:text-white text-xs font-medium flex items-center gap-2 border border-white/[0.08] transition-colors cursor-pointer active:scale-95"
+                            title="Tambahkan ke antrean putar"
+                          >
+                            <ListPlus size={15} strokeWidth={1.75} />
+                            <span>+ Antrean</span>
+                          </button>
+
+                          {onStartDownload && (
+                            <button
+                              onClick={() => onStartDownload(heroTrack)}
+                              className="w-10 h-10 rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white flex items-center justify-center border border-white/[0.06] transition-colors cursor-pointer active:scale-95"
+                              title="Unduh lagu ini"
+                            >
+                              <Download size={15} strokeWidth={1.75} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Section: "Di Stasiun Ini" Mini Queue (Desktop lg+) */}
+                    <div className="hidden lg:flex flex-col justify-between w-72 xl:w-84 pl-6 border-l border-white/[0.06] flex-shrink-0">
+                      <div>
+                        <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/[0.04]">
+                          <div className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <span className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
+                              Di Stasiun Ini
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-zinc-500 font-medium">
+                            Rekomendasi Terkait
+                          </span>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          {companionTracks.map((ct, cIdx) => (
+                            <div
+                              key={`comp-${ct.id}-${cIdx}`}
+                              onClick={() => onPlayTrack(ct)}
+                              className="group/item flex items-center gap-3 p-2 rounded-[10px] hover:bg-white/[0.06] cursor-pointer transition-colors"
+                            >
+                              <div className="relative w-9 h-9 rounded-[6px] overflow-hidden bg-[#1E1E26] flex-shrink-0 border border-white/[0.06]">
+                                {ct.thumbnailUrl ? (
+                                  <img src={ct.thumbnailUrl} alt={ct.title} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-zinc-400">
+                                    <Music size={14} />
+                                  </div>
+                                )}
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/item:opacity-100 transition-opacity flex items-center justify-center">
+                                  <Play size={12} fill="white" className="text-white ml-0.5" />
+                                </div>
+                              </div>
+
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-medium text-white truncate group-hover/item:text-zinc-200">
+                                  {ct.title}
+                                </p>
+                                <p className="text-[11px] text-zinc-400 truncate">
+                                  {ct.artist}
+                                </p>
+                              </div>
+
+                              <span className="text-[11px] font-mono text-zinc-500 flex-shrink-0 group-hover/item:text-zinc-300">
+                                {formatDuration(ct.duration)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Integrated Slide Navigation & Indicators */}
+                      <div className="flex items-center justify-between pt-3 mt-1 border-t border-white/[0.04]">
+                        <div className="flex items-center gap-1.5">
+                          {spotlightItems.map((_, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => setActiveHeroIndex(idx)}
+                              className={`h-1.5 rounded-full transition-all duration-200 cursor-pointer ${
+                                idx === activeHeroIndex % spotlightItems.length
+                                  ? 'w-5 bg-white'
+                                  : 'w-1.5 bg-white/25 hover:bg-white/50'
+                              }`}
+                              title={`Slide ${idx + 1}`}
+                            />
+                          ))}
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() =>
+                              setActiveHeroIndex(
+                                (prev) => (prev - 1 + spotlightItems.length) % spotlightItems.length
+                              )
+                            }
+                            className="w-7 h-7 rounded-full bg-white/[0.04] hover:bg-white/[0.1] text-zinc-300 hover:text-white flex items-center justify-center border border-white/[0.06] transition-colors cursor-pointer"
+                            title="Sebelumnya"
+                          >
+                            <ChevronLeft size={14} strokeWidth={2} />
+                          </button>
+                          <button
+                            onClick={() =>
+                              setActiveHeroIndex((prev) => (prev + 1) % spotlightItems.length)
+                            }
+                            className="w-7 h-7 rounded-full bg-white/[0.04] hover:bg-white/[0.1] text-zinc-300 hover:text-white flex items-center justify-center border border-white/[0.06] transition-colors cursor-pointer"
+                            title="Berikutnya"
+                          >
+                            <ChevronRight size={14} strokeWidth={2} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Mobile / Tablet Slide Controls (hidden on lg+) */}
+                  <div className="flex lg:hidden items-center justify-between pt-4 mt-3 border-t border-white/[0.04] relative z-10">
+                    <div className="flex items-center gap-1.5">
+                      {spotlightItems.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setActiveHeroIndex(idx)}
+                          className={`h-1.5 rounded-full transition-all duration-200 cursor-pointer ${
+                            idx === activeHeroIndex % spotlightItems.length
+                              ? 'w-5 bg-white'
+                              : 'w-1.5 bg-white/25 hover:bg-white/50'
+                          }`}
+                          title={`Slide ${idx + 1}`}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() =>
+                          setActiveHeroIndex(
+                            (prev) => (prev - 1 + spotlightItems.length) % spotlightItems.length
+                          )
+                        }
+                        className="w-7 h-7 rounded-full bg-white/[0.04] hover:bg-white/[0.1] text-zinc-300 hover:text-white flex items-center justify-center border border-white/[0.06] transition-colors cursor-pointer"
+                        title="Sebelumnya"
+                      >
+                        <ChevronLeft size={14} strokeWidth={2} />
+                      </button>
+                      <button
+                        onClick={() =>
+                          setActiveHeroIndex((prev) => (prev + 1) % spotlightItems.length)
+                        }
+                        className="w-7 h-7 rounded-full bg-white/[0.04] hover:bg-white/[0.1] text-zinc-300 hover:text-white flex items-center justify-center border border-white/[0.06] transition-colors cursor-pointer"
+                        title="Berikutnya"
+                      >
+                        <ChevronRight size={14} strokeWidth={2} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* 3. Baru Saja Diputar / Heavy Rotation */}
+            {(homeFilter === 'all' || homeFilter === 'music') && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-white tracking-tight">
+                      Baru Saja Diputar
+                    </h2>
+                    <p className="text-xs text-zinc-400 font-normal mt-0.5">
+                      Kembali ke musik yang baru dan sering kamu dengarkan
+                    </p>
+                  </div>
+
                   <button
                     onClick={() => {
                       if (onViewChange) onViewChange('library');
                     }}
-                    className="text-[13px] text-[#8D8D93] hover:text-[#F4F4F0] transition-colors cursor-pointer"
+                    className="text-[13px] text-zinc-400 hover:text-white font-medium transition-colors cursor-pointer"
                   >
                     Lihat semua
                   </button>
                 </div>
 
-                {/* Tabel 6 Lagu (Bagian 3.4) */}
-                <div className="w-full">
-                  <div className="grid grid-cols-[32px_2.4fr_1.4fr_1.2fr_60px] gap-4 px-3 py-1.5 text-[12px] text-[#8D8D93] select-none">
-                    <span className="text-center">#</span>
-                    <span>Judul</span>
-                    <span>Artis</span>
-                    <span className="hidden xl:block">Album</span>
-                    <span className="text-right">Durasi</span>
-                  </div>
-
-                  <div className="space-y-1">
-                    {(() => {
-                      const recentList: Track[] = (libraryTracks && libraryTracks.length >= 6
-                        ? libraryTracks.slice(0, 6)
-                        : [...(libraryTracks || []), ...SAMPLE_SONGS]
-                      ).slice(0, 6);
-
-                      return recentList.map((track, idx) => (
-                        <div
-                          key={track.id}
-                          onClick={() => onPlayTrack(track)}
-                          className="h-14 rounded-[8px] grid grid-cols-[32px_2.4fr_1.4fr_1.2fr_60px] gap-4 px-3 items-center group hover:bg-[#1F1F23] transition-colors cursor-pointer select-none"
-                        >
-                          <div className="flex items-center justify-center">
-                            <span className="text-[12px] text-[#8D8D93] group-hover:hidden">
-                              {idx + 1}
-                            </span>
-                            <div className="w-7 h-7 rounded-full bg-[#F4F4F0] text-[#0B0B0C] hidden group-hover:flex items-center justify-center shadow">
-                              <Play size={12} fill="currentColor" className="ml-0.5" />
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3.5 min-w-0">
-                            <div className="w-10 h-10 rounded-[6px] overflow-hidden bg-[#1F1F23] flex-shrink-0">
-                              {track.thumbnailUrl ? (
-                                <img src={track.thumbnailUrl} alt={track.title} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-[#8D8D93]">
-                                  <Music size={16} />
-                                </div>
-                              )}
-                            </div>
-                            <span className="text-[14px] font-normal text-[#F4F4F0] truncate">
-                              {track.title}
-                            </span>
-                          </div>
-
-                          <span className="text-[13px] text-[#8D8D93] truncate">
-                            {track.artist}
-                          </span>
-
-                          <span className="text-[13px] text-[#8D8D93] truncate hidden xl:block">
-                            {track.album || 'Single'}
-                          </span>
-
-                          <span className="text-[12px] font-mono text-[#8D8D93] text-right">
-                            {formatDuration(track.duration)}
-                          </span>
-                        </div>
-                      ));
-                    })()}
-                  </div>
-                </div>
-              </div>
-
-              {/* Kolom Kanan: Panel Playlist Kamu (1fr) */}
-              <div className="rounded-[10px] bg-[#17171A] p-5 space-y-2 select-none">
-                <div className="flex items-center justify-between pb-1">
-                  <h2 className="text-[18px] font-normal text-[#F4F4F0]">
-                    Playlist kamu
-                  </h2>
-                </div>
-
-                <div className="space-y-1">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   {(() => {
-                    const displayedPlaylists = (customPlaylists && customPlaylists.length >= 5
-                      ? customPlaylists.slice(0, 5)
-                      : [
-                          ...(customPlaylists || []),
-                          ...SAMPLE_PLAYLISTS.slice(0, Math.max(0, 5 - (customPlaylists?.length || 0))).map((sp) => ({
-                            id: sp.id,
-                            name: sp.name,
-                            trackCount: sp.trackCount,
-                            tracks: [],
-                            trackIds: [],
-                          })),
-                        ]
-                    ).slice(0, 5);
+                    const fallbackSource = dynamicTrendingSongs.length > 0 ? dynamicTrendingSongs : REAL_POPULAR_SONGS;
+                    const recentList = (listeningHistory && listeningHistory.length > 0
+                      ? listeningHistory
+                      : libraryTracks && libraryTracks.length > 0
+                      ? libraryTracks
+                      : fallbackSource
+                    ).slice(0, 6);
 
-                    return displayedPlaylists.map((pl) => {
-                      const cover = pl.tracks?.[0]?.thumbnailUrl;
-                      const count = pl.tracks && pl.tracks.length > 0 ? pl.tracks.length : (pl as any).trackCount || 0;
-
-                      return (
-                        <div
-                          key={pl.id}
-                          onClick={() => {
-                            if (onSelectCustomPlaylist && !pl.id.startsWith('sample-')) {
-                              onSelectCustomPlaylist(pl.id);
-                            } else if (onViewChange) {
-                              onViewChange('library');
-                            }
-                          }}
-                          className="h-14 px-3 py-2 rounded-[8px] flex items-center gap-3.5 hover:bg-[#1F1F23] transition-colors cursor-pointer group"
-                        >
-                          <div className="w-12 h-12 rounded-[6px] overflow-hidden bg-[#1F1F23] flex-shrink-0 flex items-center justify-center">
-                            {cover ? (
-                              <img src={cover} alt={pl.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <span className="text-[18px] font-light text-[#8D8D93]">
-                                {pl.name.slice(0, 1).toUpperCase()}
+                    return recentList.map((item) => (
+                      <div
+                        key={`heavy-${item.id}`}
+                        onClick={() => onPlayTrack(item)}
+                        className="group p-3.5 rounded-[16px] bg-[#141418] hover:bg-[#1A1A20] border border-white/[0.04] hover:border-white/[0.08] transition-all duration-200 cursor-pointer select-none flex flex-col shadow-[0_4px_16px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.5)] active:scale-[0.98]"
+                      >
+                        <div className="relative aspect-square w-full rounded-[10px] overflow-hidden bg-[#1D1D24] mb-3 shadow-md border border-white/[0.06]">
+                          {item.thumbnailUrl ? (
+                            <img
+                              src={item.thumbnailUrl}
+                              alt={item.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-zinc-400">
+                              <Music size={32} strokeWidth={1.5} />
+                            </div>
+                          )}
+                          <div className="absolute bottom-2.5 right-2.5 w-10 h-10 rounded-full bg-white text-black flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200 shadow-xl hover:scale-105 active:scale-95">
+                            <Play size={16} fill="currentColor" className="ml-0.5" />
+                          </div>
+                        </div>
+                        <div className="pt-0.5">
+                          <h4 className="text-[13px] font-semibold text-white tracking-tight truncate group-hover:text-zinc-200 transition-colors">
+                            {item.title}
+                          </h4>
+                          <div className="flex items-center justify-between text-[12px] text-zinc-400 font-normal truncate mt-0.5">
+                            <span className="truncate flex-1">{item.artist}</span>
+                            {item.playedAt && (
+                              <span className="text-[10px] text-zinc-500 font-mono ml-1 flex-shrink-0">
+                                {formatRelativeTime(item.playedAt)}
                               </span>
                             )}
                           </div>
-
-                          <div className="min-w-0 flex-1">
-                            <h4 className="text-[14px] font-normal text-[#F4F4F0] truncate">
-                              {pl.name}
-                            </h4>
-                            <p className="text-[12px] text-[#8D8D93] truncate">
-                              {count} lagu
-                            </p>
-                          </div>
                         </div>
-                      );
-                    });
+                      </div>
+                    ));
                   })()}
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* Seksi Baru Ditambahkan (Section 6.1: Kartu cover 200px baris rata kiri) */}
-            <div className="space-y-3 pt-4">
-              <h2 className="text-[18px] font-normal text-[#F4F4F0]">
-                Baru ditambahkan
-              </h2>
+            {/* 4. Mix Penemuan: Karena Kamu Mendengarkan [Seed] */}
+            {(homeFilter === 'all' || homeFilter === 'music') && (
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-white tracking-tight">
+                    {personalizedData?.seedArtist
+                      ? `Mix Penemuan: Karena Kamu Mendengarkan ${personalizedData.seedArtist}`
+                      : 'Lagu Terpopuler Hari Ini'}
+                  </h2>
+                  <p className="text-xs text-zinc-400 font-normal mt-0.5">
+                    {personalizedData?.vibeTitle
+                      ? `${personalizedData.vibeTitle} • Eksplorasi musik berirama serupa tanpa repetisi artis`
+                      : 'Tangga lagu dan track yang paling banyak didengarkan hari ini'}
+                  </p>
+                </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5">
                 {(() => {
-                  const addedList = (libraryTracks && libraryTracks.length >= 6
-                    ? libraryTracks.slice(0, 6)
-                    : [...(libraryTracks || []), ...SAMPLE_SONGS]
-                  ).slice(0, 6);
+                  const fallbackList = dynamicTrendingSongs.length > 0 ? dynamicTrendingSongs : REAL_POPULAR_SONGS;
+                  const discoveryPool =
+                    personalizedData?.discoveryTracks && personalizedData.discoveryTracks.length > 0
+                      ? personalizedData.discoveryTracks.map(convertItemToTrack)
+                      : fallbackList;
+                  const topList = discoveryPool.slice(0, 10);
+                  const col1 = topList.slice(0, 5);
+                  const col2 = topList.slice(5, 10);
 
-                  return addedList.map((item) => (
+                  const renderSongRow = (track: Track, rankIndex: number) => (
                     <div
-                      key={`added-${item.id}`}
-                      onClick={() => onPlayTrack(item)}
-                      className="group cursor-pointer select-none flex flex-col"
+                      key={`top-${track.id}-${rankIndex}`}
+                      onClick={() => onPlayTrack(track)}
+                      className="h-14 px-3.5 rounded-[12px] bg-[#141418] hover:bg-[#1A1A20] border border-white/[0.03] hover:border-white/[0.06] flex items-center gap-3.5 group transition-all duration-200 cursor-pointer select-none shadow-sm"
                     >
-                      <div className="relative aspect-square w-full rounded-[8px] overflow-hidden bg-[#1F1F23] mb-2.5 shadow-md">
-                        {item.thumbnailUrl ? (
-                          <img
-                            src={item.thumbnailUrl}
-                            alt={item.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[#8D8D93]">
-                            <Music size={32} />
-                          </div>
-                        )}
-                        <div className="absolute bottom-2.5 right-2.5 w-11 h-11 rounded-full bg-[#F4F4F0] text-[#0B0B0C] flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all shadow-xl">
-                          <Play size={18} fill="currentColor" className="ml-0.5" />
+                      {/* Rank / Play Indicator */}
+                      <div className="w-5 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-medium text-zinc-500 group-hover:hidden">
+                          {rankIndex + 1}
+                        </span>
+                        <div className="w-6 h-6 rounded-full bg-white text-black hidden group-hover:flex items-center justify-center shadow-md">
+                          <Play size={11} fill="currentColor" className="ml-0.5" />
                         </div>
                       </div>
-                      <h4 className="text-[14px] font-normal text-[#F4F4F0] truncate">
-                        {item.title}
-                      </h4>
-                      <p className="text-[12px] text-[#8D8D93] truncate mt-0.5">
-                        {item.artist}
-                      </p>
+
+                      {/* Cover Artwork */}
+                      <div className="w-10 h-10 rounded-[6px] overflow-hidden bg-[#1D1D24] border border-white/[0.06] flex-shrink-0">
+                        {track.thumbnailUrl ? (
+                          <img
+                            src={track.thumbnailUrl}
+                            alt={track.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-zinc-400">
+                            <Music size={16} strokeWidth={1.5} />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Song Title & Artist */}
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-[13px] font-semibold text-white group-hover:text-zinc-200 transition-colors truncate">
+                          {track.title}
+                        </h4>
+                        <p className="text-[12px] text-zinc-400 font-normal truncate mt-0.5">
+                          {track.artist}
+                        </p>
+                      </div>
+
+                      {/* Duration */}
+                      <span className="text-[12px] font-mono text-zinc-500 flex-shrink-0 group-hover:hidden">
+                        {formatDuration(track.duration)}
+                      </span>
+
+                      {/* Hover Action Buttons */}
+                      <div className="hidden group-hover:flex items-center gap-1 flex-shrink-0">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onAddTracksToQueue([track]);
+                          }}
+                          className="w-7 h-7 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
+                          title="Tambah ke Antrean"
+                        >
+                          <ListPlus size={14} strokeWidth={1.75} />
+                        </button>
+
+                        {onStartDownload && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onStartDownload(track);
+                            }}
+                            className="w-7 h-7 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
+                            title="Unduh Lagu"
+                          >
+                            <Download size={14} strokeWidth={1.75} />
+                          </button>
+                        )}
+
+                        {onOpenAddToPlaylistModal && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOpenAddToPlaylistModal([track]);
+                            }}
+                            className="w-7 h-7 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
+                            title="Tambah ke Playlist"
+                          >
+                            <Plus size={14} strokeWidth={1.75} />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  ));
+                  );
+
+                  return (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        {col1.map((t, idx) => renderSongRow(t, idx))}
+                      </div>
+                      <div className="space-y-2">
+                        {col2.map((t, idx) => renderSongRow(t, idx + 5))}
+                      </div>
+                    </div>
+                  );
                 })()}
               </div>
-            </div>
+            )}
+
+            {/* 5. Stasiun Mood & Vibe Pilihan (Adaptive Vibe Stations) */}
+            {(homeFilter === 'all' || homeFilter === 'music') && (
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-white tracking-tight">
+                    Stasiun Mood & Vibe Pilihan
+                  </h2>
+                  <p className="text-xs text-zinc-400 font-normal mt-0.5">
+                    Pilih suasana musik yang beresonansi dengan seleramu untuk eksplorasi instan
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3.5">
+                  {(
+                    personalizedData?.moodStations && personalizedData.moodStations.length > 0
+                      ? personalizedData.moodStations
+                      : [
+                          { title: 'Acid Jazz & Funk', query: 'Acid Jazz Funk Groove', color: 'from-amber-600/30 to-rose-900/30' },
+                          { title: 'J-Fusion & City Pop', query: 'Japanese Jazz Fusion City Pop', color: 'from-cyan-600/30 to-blue-900/30' },
+                          { title: 'Anime & Gaming Grooves', query: 'Anime VGM Groovy Soundtracks', color: 'from-purple-600/30 to-indigo-900/30' },
+                          { title: 'Lofi & Instrumental Chill', query: 'Lofi Chill Beats Gaming', color: 'from-emerald-600/30 to-teal-900/30' },
+                        ]
+                  ).map((cat) => (
+                    <div
+                      key={cat.title}
+                      onClick={() => handleSearch(cat.query, true)}
+                      className={`h-24 p-4 rounded-[14px] bg-gradient-to-br ${cat.color} bg-[#141418] hover:bg-[#1A1A20] border border-white/[0.06] hover:border-white/[0.12] flex flex-col justify-between cursor-pointer select-none group transition-all duration-200 shadow-md hover:scale-[1.02] active:scale-[0.98]`}
+                    >
+                      <span className="text-sm font-bold text-white tracking-tight block drop-shadow-sm">
+                        {cat.title}
+                      </span>
+                      <span className="text-[11px] font-mono text-zinc-300 group-hover:text-white transition-colors flex items-center justify-between">
+                        <span>Putar Stasiun</span>
+                        <span>→</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 6. Artis Serupa Pilihan (Juxtopposed Related Artists Showcase) */}
+            {(homeFilter === 'all' || homeFilter === 'artists') && (
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-white tracking-tight">
+                    {personalizedData?.seedArtist
+                      ? `Artis Serupa Pilihan (${personalizedData.seedArtist})`
+                      : 'Artis Populer Pilihan'}
+                  </h2>
+                  <p className="text-xs text-zinc-400 font-normal mt-0.5">
+                    Musisi dan kreator se-ekosistem musik untuk memperluas referensimu
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+                  {popularArtistsList.map((art) => (
+                    <div
+                      key={art.id}
+                      onClick={() => handleOpenArtist(art)}
+                      className="group p-4 rounded-[16px] bg-[#141418] hover:bg-[#1A1A20] border border-white/[0.04] hover:border-white/[0.08] transition-all duration-200 cursor-pointer select-none flex flex-col items-center text-center shadow-[0_4px_16px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.5)] active:scale-[0.98]"
+                    >
+                      <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden bg-[#1D1D24] mb-3 border border-white/[0.08] shadow-lg group-hover:scale-105 transition-transform duration-200 flex-shrink-0 relative flex items-center justify-center">
+                        <span className="text-xl font-bold text-zinc-400 select-none">
+                          {(art.name || 'A').charAt(0).toUpperCase()}
+                        </span>
+                        {art.thumbnailUrl && (
+                          <img
+                            src={art.thumbnailUrl}
+                            alt={art.name}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            loading="lazy"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        )}
+                      </div>
+                      <h4 className="text-[13px] font-semibold text-white group-hover:text-zinc-200 truncate w-full">
+                        {art.name}
+                      </h4>
+                      <p className="text-[11px] text-zinc-400 font-normal truncate w-full mt-0.5">
+                        {art.subscribers}
+                      </p>
+                      <span className="mt-2 px-2.5 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-[10px] font-medium text-zinc-400 uppercase tracking-wider">
+                        {personalizedData?.seedArtist ? 'Artis Terkait' : 'Artis'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           /* VIEW C: Search Results / Liked Music / User Playlists */
@@ -1234,229 +2070,6 @@ export const YTMusicView: React.FC<YTMusicViewProps> = ({
                     )}
                   </div>
                 )}
-              </div>
-            ) : selectedArtistProfile ? (
-              <div className="space-y-8 animate-in fade-in duration-200 -mx-6 -mt-6">
-                {/* Artist Hero Header */}
-                <div className="relative h-72 md:h-80 w-full overflow-hidden flex flex-col justify-between p-6 md:p-8 select-none bg-gradient-to-b from-[#2e2e2e] to-[#121212]">
-                  {/* Banner Image */}
-                  {selectedArtistProfile.bannerUrl && (
-                    <img
-                      src={selectedArtistProfile.bannerUrl}
-                      alt={selectedArtistProfile.name}
-                      className="absolute inset-0 w-full h-full object-cover object-center opacity-70 filter brightness-90"
-                    />
-                  )}
-                  {/* Spotify Dark Bottom Vignette */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-[#121212]/60 to-black/30" />
-
-                  {/* Top Bar: Back Button */}
-                  <div className="relative z-10">
-                    <button
-                      onClick={() => setSelectedArtistProfile(null)}
-                      className="flex items-center gap-2 px-3.5 py-1.5 rounded-[8px] bg-[#17171A]/80 hover:bg-[#1F1F23] text-[#F4F4F0] text-xs font-medium transition-colors cursor-pointer"
-                    >
-                      <ArrowLeft size={16} />
-                      <span>Kembali</span>
-                    </button>
-                  </div>
-
-                  {/* Artist Header Metadata */}
-                  <div className="relative z-10 space-y-1">
-                    <div className="flex items-center gap-1.5 text-xs text-[#8D8D93]">
-                      <CheckCircle2 size={15} className="text-[#8D8D93]" />
-                      <span>Artis Terverifikasi</span>
-                    </div>
-
-                    <h1 className="text-3xl md:text-5xl font-light text-[#F4F4F0] tracking-tight">
-                      {selectedArtistProfile.name}
-                    </h1>
-
-                    <p className="text-[13px] text-[#8D8D93]">
-                      {selectedArtistProfile.subscribers
-                        ? `${selectedArtistProfile.subscribers} pendengar bulanan`
-                        : 'Artis Populer'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Artist Body Content */}
-                <div className="px-6 space-y-8 pb-10">
-                  {/* Action Controls */}
-                  <div className="flex items-center gap-4">
-                    <button
-                      disabled={selectedArtistProfile.topSongs.length === 0}
-                      onClick={() => {
-                        if (selectedArtistProfile.topSongs.length > 0) {
-                          if (onPlayPlaylist) {
-                            onPlayPlaylist(selectedArtistProfile.topSongs.map(convertItemToTrack), 0);
-                          } else {
-                            onPlayTrack(convertItemToTrack(selectedArtistProfile.topSongs[0]));
-                          }
-                        }
-                      }}
-                      className="w-12 h-12 rounded-full bg-[#F4F4F0] text-[#0B0B0C] flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                      title="Putar Lagu Teratas"
-                    >
-                      <Play size={20} fill="currentColor" className="ml-0.5" />
-                    </button>
-
-                    <button
-                      disabled={selectedArtistProfile.topSongs.length === 0}
-                      onClick={() => {
-                        if (selectedArtistProfile.topSongs.length > 0) {
-                          if (onPlayShuffled) {
-                            onPlayShuffled(selectedArtistProfile.topSongs.map(convertItemToTrack));
-                          } else if (onPlayPlaylist) {
-                            onPlayPlaylist(selectedArtistProfile.topSongs.map(convertItemToTrack));
-                          }
-                        }
-                      }}
-                      className="w-11 h-11 rounded-[8px] bg-[#1F1F23] hover:bg-[#34343A] text-[#8D8D93] hover:text-[#F4F4F0] flex items-center justify-center transition-colors cursor-pointer disabled:opacity-40"
-                      title="Acak Lagu Teratas"
-                    >
-                      <Shuffle size={18} />
-                    </button>
-
-                    {onDownloadBatch && selectedArtistProfile.topSongs.length > 0 && (
-                      <button
-                        onClick={() => onDownloadBatch(selectedArtistProfile.topSongs.map(convertItemToTrack))}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-[8px] bg-[#1F1F23] hover:bg-[#34343A] text-xs font-medium text-[#F4F4F0] transition-colors cursor-pointer"
-                        title="Unduh seluruh lagu teratas artis ini"
-                      >
-                        <Download size={14} className="text-[#F4F4F0]" />
-                        <span>Unduh Semua</span>
-                      </button>
-                    )}
-
-                    {loadingArtist && (
-                      <div className="flex items-center gap-2 text-xs text-[#8D8D93]">
-                        <Loader2 size={16} className="animate-spin text-[#F4F4F0]" />
-                        <span>Memuat profil artis...</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Section: Populer */}
-                  <div className="space-y-4">
-                    <h2 className="text-2xl font-light tracking-tight text-[#F4F4F0]">Populer</h2>
-
-                    {loadingArtist && selectedArtistProfile.topSongs.length === 0 ? (
-                      <div className="space-y-2 animate-pulse">
-                        {[1, 2, 3, 4, 5].map((i) => (
-                          <div key={i} className="h-14 rounded-[8px] bg-[#17171A]" />
-                        ))}
-                      </div>
-                    ) : selectedArtistProfile.topSongs.length > 0 ? (
-                      <div className="space-y-1">
-                        {selectedArtistProfile.topSongs.map((track, idx) => (
-                          <AllSongsCompactRow
-                            key={track.id}
-                            item={track}
-                            isSelected={selectedTrackIds.has(track.id)}
-                            onToggleSelect={(e) => handleToggleSelectTrack(track.id, e)}
-                            onPlay={() => {
-                              if (onPlayPlaylist) {
-                                onPlayPlaylist(selectedArtistProfile.topSongs.map(convertItemToTrack), idx);
-                              } else {
-                                onPlayTrack(convertItemToTrack(track));
-                              }
-                            }}
-                            rank={idx + 1}
-                            onPlayNext={() => onPlayNext?.(convertItemToTrack(track))}
-                            onAddToPlaylist={() => onOpenAddToPlaylistModal?.([convertItemToTrack(track)])}
-                            onAddToQueue={() => onAddTracksToQueue([convertItemToTrack(track)])}
-                            onDownload={() => onStartDownload(convertItemToTrack(track))}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="py-8 text-center text-xs text-[#8D8D93] bg-[#17171A] rounded-[10px]">
-                        Tidak ada lagu populer yang ditemukan.
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Section: Diskografi */}
-                  {(selectedArtistProfile.albums.length > 0 || selectedArtistProfile.singles.length > 0) && (
-                    <div className="space-y-4 pt-4">
-                      <div className="flex items-center justify-between">
-                        <h2 className="text-2xl font-light tracking-tight text-[#F4F4F0]">Diskografi</h2>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setArtistDiscographyTab('all')}
-                            className={`h-9 px-4 rounded-[8px] text-[13px] transition-all cursor-pointer ${
-                              artistDiscographyTab === 'all'
-                                ? 'bg-[#F4F4F0] text-[#0B0B0C]'
-                                : 'bg-[#17171A] hover:bg-[#1F1F23] text-[#8D8D93] hover:text-[#F4F4F0]'
-                            }`}
-                          >
-                            Semua
-                          </button>
-                          {selectedArtistProfile.albums.length > 0 && (
-                            <button
-                              onClick={() => setArtistDiscographyTab('albums')}
-                              className={`h-9 px-4 rounded-[8px] text-[13px] transition-all cursor-pointer ${
-                                artistDiscographyTab === 'albums'
-                                  ? 'bg-[#F4F4F0] text-[#0B0B0C]'
-                                  : 'bg-[#17171A] hover:bg-[#1F1F23] text-[#8D8D93] hover:text-[#F4F4F0]'
-                              }`}
-                            >
-                              Album
-                            </button>
-                          )}
-                          {selectedArtistProfile.singles.length > 0 && (
-                            <button
-                              onClick={() => setArtistDiscographyTab('singles')}
-                              className={`h-9 px-4 rounded-[8px] text-[13px] transition-all cursor-pointer ${
-                                artistDiscographyTab === 'singles'
-                                  ? 'bg-[#F4F4F0] text-[#0B0B0C]'
-                                  : 'bg-[#17171A] hover:bg-[#1F1F23] text-[#8D8D93] hover:text-[#F4F4F0]'
-                              }`}
-                            >
-                              Single & EP
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                        {(artistDiscographyTab === 'all'
-                          ? [...selectedArtistProfile.albums, ...selectedArtistProfile.singles]
-                          : artistDiscographyTab === 'albums'
-                          ? selectedArtistProfile.albums
-                          : selectedArtistProfile.singles
-                        ).map((item) => (
-                          <div
-                            key={item.id}
-                            onClick={() => handleSearch(item.title, true)}
-                            className="group p-3 rounded-[10px] bg-[#17171A] hover:bg-[#1F1F23] transition-colors cursor-pointer flex flex-col select-none"
-                          >
-                            <div className="relative aspect-square w-full rounded-[8px] overflow-hidden bg-[#0B0B0C] mb-2.5 shadow-md">
-                              {item.thumbnailUrl ? (
-                                <img src={item.thumbnailUrl} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-[#8D8D93]">
-                                  <Music size={32} />
-                                </div>
-                              )}
-                              <div className="absolute bottom-2 right-2 w-9 h-9 rounded-full bg-[#F4F4F0] text-[#0B0B0C] flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all shadow-xl">
-                                <Play size={15} fill="currentColor" className="translate-x-0.5" />
-                              </div>
-                            </div>
-                            <p className="text-xs font-semibold text-[#F4F4F0] tracking-tight truncate group-hover:text-white transition-colors">
-                              {item.title}
-                            </p>
-                            <p className="text-[11px] text-[#8D8D93] truncate mt-0.5">
-                              {item.year ? `${item.year} • ` : ''}{item.type || 'Album'}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
               </div>
             ) : (
               <>

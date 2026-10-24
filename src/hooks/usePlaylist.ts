@@ -49,15 +49,15 @@ export function usePlaylist(serverUrl: string = 'http://127.0.0.1:45454') {
   const [isShuffle, setIsShuffle] = useState(false);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>('all');
 
-  // Smart non-repeating shuffle queue
-  const shuffleQueueRef = useRef<number[]>([]);
-  const shuffleHistoryRef = useRef<number[]>([]);
+  // Deterministic non-repeating shuffle permutation
+  const shuffledOrderRef = useRef<number[]>([]);
 
-  // Fisher-Yates algorithm to generate a non-repeating permutation
-  const generateShuffledQueue = useCallback((totalTracks: number, excludeIndex: number | null): number[] => {
+  // Fisher-Yates algorithm to generate a full non-repeating permutation
+  const generateShuffledOrder = useCallback((totalTracks: number, startIndex: number | null): number[] => {
+    if (totalTracks <= 0) return [];
     const indices: number[] = [];
     for (let i = 0; i < totalTracks; i++) {
-      if (i !== excludeIndex) {
+      if (i !== startIndex) {
         indices.push(i);
       }
     }
@@ -65,6 +65,9 @@ export function usePlaylist(serverUrl: string = 'http://127.0.0.1:45454') {
     for (let i = indices.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+    if (startIndex !== null && startIndex >= 0 && startIndex < totalTracks) {
+      return [startIndex, ...indices];
     }
     return indices;
   }, []);
@@ -330,14 +333,11 @@ export function usePlaylist(serverUrl: string = 'http://127.0.0.1:45454') {
 
       if (autoShuffle) {
         setIsShuffle(true);
-        shuffleQueueRef.current = generateShuffledQueue(newQueue.length, safeIndex);
-        shuffleHistoryRef.current = [];
+        shuffledOrderRef.current = generateShuffledOrder(newQueue.length, safeIndex);
       } else if (isShuffle) {
-        shuffleQueueRef.current = generateShuffledQueue(newQueue.length, safeIndex);
-        shuffleHistoryRef.current = [];
+        shuffledOrderRef.current = generateShuffledOrder(newQueue.length, safeIndex);
       } else {
-        shuffleQueueRef.current = [];
-        shuffleHistoryRef.current = [];
+        shuffledOrderRef.current = [];
       }
 
       // Background pre-match for Spotify tracks in queue (instant 0ms transitions)
@@ -358,7 +358,7 @@ export function usePlaylist(serverUrl: string = 'http://127.0.0.1:45454') {
         return [...prev, ...toAdd];
       });
     },
-    [generateShuffledQueue, isShuffle]
+    [generateShuffledOrder, isShuffle]
   );
 
   // Atomically load and play an entire playlist (preserves clicked track index)
@@ -607,7 +607,7 @@ export function usePlaylist(serverUrl: string = 'http://127.0.0.1:45454') {
     [queue]
   );
 
-  // Compute next track index strictly within current queue
+  // Compute next track index strictly within current queue (deterministic & non-destructive)
   const getNextIndex = useCallback(
     (fromIndex?: number): number | null => {
       if (queue.length === 0) return null;
@@ -619,19 +619,22 @@ export function usePlaylist(serverUrl: string = 'http://127.0.0.1:45454') {
       }
 
       if (isShuffle && queue.length > 1) {
-        if (shuffleQueueRef.current.length === 0) {
-          if (repeatMode === 'off') {
-            return null;
-          }
-          shuffleQueueRef.current = generateShuffledQueue(queue.length, baseIdx);
-          shuffleHistoryRef.current = [];
+        let order = shuffledOrderRef.current;
+        if (order.length !== queue.length) {
+          order = generateShuffledOrder(queue.length, baseIdx);
+          shuffledOrderRef.current = order;
         }
 
-        if (shuffleQueueRef.current.length > 0) {
-          const nextIdx = shuffleQueueRef.current.shift()!;
-          shuffleHistoryRef.current.push(baseIdx);
-          return nextIdx;
+        let pos = order.indexOf(baseIdx);
+        if (pos === -1) {
+          pos = 0;
         }
+
+        const nextPos = pos + 1;
+        if (nextPos < order.length) {
+          return order[nextPos];
+        }
+        return repeatMode === 'all' ? order[0] : null;
       }
 
       const next = baseIdx + 1;
@@ -640,10 +643,10 @@ export function usePlaylist(serverUrl: string = 'http://127.0.0.1:45454') {
       }
       return repeatMode === 'all' ? 0 : null;
     },
-    [queue.length, currentTrackIndex, repeatMode, isShuffle, generateShuffledQueue]
+    [queue.length, currentTrackIndex, repeatMode, isShuffle, generateShuffledOrder]
   );
 
-  // Compute previous track index strictly within current queue
+  // Compute previous track index strictly within current queue (deterministic & non-destructive)
   const getPrevIndex = useCallback(
     (fromIndex?: number): number | null => {
       if (queue.length === 0) return null;
@@ -654,10 +657,23 @@ export function usePlaylist(serverUrl: string = 'http://127.0.0.1:45454') {
         return baseIdx;
       }
 
-      if (isShuffle && shuffleHistoryRef.current.length > 0) {
-        const prevIdx = shuffleHistoryRef.current.pop()!;
-        shuffleQueueRef.current.unshift(baseIdx);
-        return prevIdx;
+      if (isShuffle && queue.length > 1) {
+        let order = shuffledOrderRef.current;
+        if (order.length !== queue.length) {
+          order = generateShuffledOrder(queue.length, baseIdx);
+          shuffledOrderRef.current = order;
+        }
+
+        let pos = order.indexOf(baseIdx);
+        if (pos === -1) {
+          pos = 0;
+        }
+
+        const prevPos = pos - 1;
+        if (prevPos >= 0) {
+          return order[prevPos];
+        }
+        return repeatMode === 'all' ? order[order.length - 1] : order[0];
       }
 
       const prev = baseIdx - 1;
@@ -666,22 +682,20 @@ export function usePlaylist(serverUrl: string = 'http://127.0.0.1:45454') {
       }
       return repeatMode === 'all' ? queue.length - 1 : 0;
     },
-    [queue.length, currentTrackIndex, repeatMode, isShuffle]
+    [queue.length, currentTrackIndex, repeatMode, isShuffle, generateShuffledOrder]
   );
 
   const toggleShuffle = useCallback(() => {
     setIsShuffle((prev) => {
       const next = !prev;
       if (next) {
-        shuffleQueueRef.current = generateShuffledQueue(queue.length, currentTrackIndex);
-        shuffleHistoryRef.current = [];
+        shuffledOrderRef.current = generateShuffledOrder(queue.length, currentTrackIndex);
       } else {
-        shuffleQueueRef.current = [];
-        shuffleHistoryRef.current = [];
+        shuffledOrderRef.current = [];
       }
       return next;
     });
-  }, [queue.length, currentTrackIndex, generateShuffledQueue]);
+  }, [queue.length, currentTrackIndex, generateShuffledOrder]);
 
   const toggleRepeat = useCallback(() => {
     setRepeatMode((prev) => {

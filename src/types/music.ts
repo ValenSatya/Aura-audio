@@ -21,6 +21,7 @@ export interface Track {
   spotifyId?: string;
   isrc?: string;
   resolvedYtUrl?: string;
+  playedAt?: number;
 }
 
 export interface SpotifyProfile {
@@ -134,6 +135,16 @@ export interface YTMusicSearchCategorized {
   songs: YTMusicTrackItem[];
   artists: YTMusicArtistItem[];
   albums: YTMusicAlbumItem[];
+}
+
+export interface YTMusicPersonalizedDiscovery {
+  vibeTitle: string;
+  seedArtist: string;
+  seedTitle?: string;
+  spotlightTrack: YTMusicTrackItem | null;
+  discoveryTracks: YTMusicTrackItem[];
+  relatedArtists: YTMusicArtistItem[];
+  moodStations: { title: string; query: string; color: string }[];
 }
 
 export interface EQBandConfig {

@@ -4,6 +4,7 @@ import { useAudioEngine } from './hooks/useAudioEngine';
 import { usePlaylist } from './hooks/usePlaylist';
 import { useDownloads } from './hooks/useDownloads';
 import { useSleepTimer } from './hooks/useSleepTimer';
+import { useListeningHistory } from './hooks/useListeningHistory';
 import { PlayerBar } from './components/PlayerBar';
 import { Sidebar } from './components/Sidebar';
 import { TrackList } from './components/TrackList';
@@ -38,7 +39,7 @@ export function App() {
   const [activeMainView, setActiveMainView] = useState<'ytmusic' | 'library' | 'custom_playlist' | 'stage'>('ytmusic');
   const [selectedLibraryPlaylist, setSelectedLibraryPlaylist] = useState<string | null>(null);
   const [activeCustomPlaylistId, setActiveCustomPlaylistId] = useState<string | null>(null);
-  const [ytSubTab, setYtSubTab] = useState<'search' | 'liked' | 'playlists'>('search');
+  const [ytSubTab, setYtSubTab] = useState<'search' | 'liked' | 'playlists'>('playlists');
   const [ytSearchQuery, setYtSearchQuery] = useState('');
   const [userProfile, setUserProfile] = useState<UserProfile>({ isLoggedIn: false });
   const [settings, setSettings] = useState<AppSettings>(() => {
@@ -114,9 +115,10 @@ export function App() {
     initElectronData();
   }, []);
 
-  // Track ended and playback progress callback refs to avoid circular dependency
+  // Track ended, playback progress, and error callback refs to avoid circular dependency
   const handleTrackEndedRef = useRef<() => void>(() => {});
   const handlePlaybackProgressRef = useRef<(curTime: number, dur: number) => void>(() => {});
+  const handlePlaybackErrorRef = useRef<(errorMsg?: string) => void>(() => {});
   // Playback request ID ref to cancel stale requests when user clicks rapidly
   const playRequestIdRef = useRef<number>(0);
   // Auto crossfade tracking refs
@@ -160,6 +162,9 @@ export function App() {
     },
     onPlaybackProgress: (curTime, dur) => {
       handlePlaybackProgressRef.current(curTime, dur);
+    },
+    onPlaybackError: (err) => {
+      handlePlaybackErrorRef.current(err);
     },
   });
 
@@ -215,6 +220,15 @@ export function App() {
     removeTrackFromPlaylist,
     removeTracksFromPlaylist,
   } = useCustomPlaylists();
+
+  const { history: listeningHistory, addToHistory } = useListeningHistory();
+
+  // Auto-record tracks into persistent listening history when played
+  useEffect(() => {
+    if (currentTrack && currentTrack.title && isPlaying) {
+      addToHistory(currentTrack);
+    }
+  }, [currentTrack, isPlaying, addToHistory]);
 
   // Active custom playlist and resolved tracks
   const activeCustomPlaylist = React.useMemo(() => {
@@ -326,6 +340,57 @@ export function App() {
     onVolumeChange: setVolume,
   });
 
+  // Track consecutive errors to prevent infinite skip loops when completely offline
+  const consecutiveErrorsRef = useRef<number>(0);
+  const skipTimeoutRef = useRef<number | null>(null);
+  const isTransitioningRef = useRef<boolean>(false);
+  const playTrackAtIndexRef = useRef<(index: number) => Promise<void>>(async () => {});
+  const handleNextRef = useRef<() => void>(() => {});
+
+  const handleNext = useCallback(() => {
+    if (isTransitioningRef.current) return;
+    handleSleepTrackEnded();
+    const nextIdx = getNextIndex();
+    if (nextIdx !== null) {
+      playTrackAtIndexRef.current(nextIdx);
+    } else {
+      pause();
+    }
+  }, [handleSleepTrackEnded, getNextIndex, pause]);
+  handleNextRef.current = handleNext;
+  handleTrackEndedRef.current = handleNext;
+
+  const handlePrev = useCallback(() => {
+    const prevIdx = getPrevIndex();
+    if (prevIdx !== null) {
+      playTrackAtIndexRef.current(prevIdx);
+    }
+  }, [getPrevIndex]);
+
+  // Auto-skip handler when a song stream fails or cannot be resolved
+  const handlePlaybackFailure = useCallback(
+    (errorMsg?: string) => {
+      if (consecutiveErrorsRef.current >= 4) {
+        console.warn('Terlalu banyak kegagalan beruntun, menghentikan antrean audio');
+        setIsBuffering(false);
+        pause();
+        return;
+      }
+      consecutiveErrorsRef.current += 1;
+      console.warn(
+        `Lagu terkendala (${consecutiveErrorsRef.current}/4), otomatis melompat ke lagu berikutnya:`,
+        errorMsg
+      );
+
+      if (skipTimeoutRef.current) clearTimeout(skipTimeoutRef.current);
+      skipTimeoutRef.current = window.setTimeout(() => {
+        handleNextRef.current();
+      }, 700);
+    },
+    [pause, setIsBuffering]
+  );
+  handlePlaybackErrorRef.current = handlePlaybackFailure;
+
   // Reset crossfade tracking triggers whenever current track index changes
   useEffect(() => {
     hasCrossfadedThisTrackRef.current = false;
@@ -347,6 +412,7 @@ export function App() {
 
         loadSource(playableUrl);
         await play();
+        consecutiveErrorsRef.current = 0;
 
         // Background pre-fetch next track relative to the newly played track and preload standby deck
         const nextIdx = getNextIndex(index);
@@ -365,10 +431,11 @@ export function App() {
             prefetchTrackStream(queue[afterNextIdx]).catch(() => {});
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         if (reqId !== playRequestIdRef.current) return;
         console.error('Playback failed:', err);
         setIsBuffering(false);
+        handlePlaybackFailure(err?.message || 'Gagal memuat URL audio');
       }
     },
     [
@@ -381,13 +448,16 @@ export function App() {
       getNextIndex,
       prefetchTrackStream,
       preloadStandbySource,
+      handlePlaybackFailure,
     ]
   );
+  playTrackAtIndexRef.current = playTrackAtIndex;
 
   // Smooth Crossfade Transition to next/specific track
   const performCrossfadeToTrack = useCallback(
     async (index: number, fadeDuration: number) => {
-      if (index < 0 || index >= queue.length) return;
+      if (index < 0 || index >= queue.length || isTransitioningRef.current) return;
+      isTransitioningRef.current = true;
       const reqId = ++playRequestIdRef.current;
       const nextTrack = queue[index];
 
@@ -400,6 +470,7 @@ export function App() {
 
         // Advance track index in React state immediately so UI updates
         setCurrentTrackIndex(index);
+        consecutiveErrorsRef.current = 0;
 
         // Pre-fetch following track for subsequent smooth transitions
         const followingIdx = getNextIndex(index);
@@ -421,7 +492,10 @@ export function App() {
       } catch (err) {
         if (reqId !== playRequestIdRef.current) return;
         console.warn('Crossfade transition error, falling back to direct play:', err);
+        hasCrossfadedThisTrackRef.current = false;
         playTrackAtIndex(index);
+      } finally {
+        isTransitioningRef.current = false;
       }
     },
     [
@@ -451,43 +525,32 @@ export function App() {
       if (timeLeft <= crossfadeSettings.duration + 4 && !isPrefetchingNextRef.current) {
         isPrefetchingNextRef.current = true;
         const nextIdx = getNextIndex();
-        if (nextIdx !== null && nextIdx >= 0 && nextIdx < queue.length) {
+        if (nextIdx !== null && nextIdx >= 0 && nextIdx < queue.length && nextIdx !== currentTrackIndex) {
           resolvePlayableUrl(queue[nextIdx]).catch(() => {});
         }
       }
 
       // 2. Trigger auto-crossfade
-      if (timeLeft <= crossfadeSettings.duration && !hasCrossfadedThisTrackRef.current) {
+      if (
+        timeLeft <= crossfadeSettings.duration &&
+        timeLeft > 0.8 &&
+        !hasCrossfadedThisTrackRef.current
+      ) {
         const nextIdx = getNextIndex();
-        if (nextIdx !== null && nextIdx >= 0 && nextIdx < queue.length) {
+        if (
+          nextIdx !== null &&
+          nextIdx >= 0 &&
+          nextIdx < queue.length &&
+          nextIdx !== currentTrackIndex
+        ) {
           hasCrossfadedThisTrackRef.current = true;
           performCrossfadeToTrack(nextIdx, Math.min(crossfadeSettings.duration, timeLeft));
         }
       }
     },
-    [isPlaying, crossfadeSettings, queue, getNextIndex, resolvePlayableUrl, performCrossfadeToTrack]
+    [isPlaying, crossfadeSettings, queue, getNextIndex, resolvePlayableUrl, performCrossfadeToTrack, currentTrackIndex]
   );
   handlePlaybackProgressRef.current = handlePlaybackProgress;
-
-  const handleNext = useCallback(() => {
-    handleSleepTrackEnded();
-    const nextIdx = getNextIndex();
-    if (nextIdx !== null) {
-      playTrackAtIndex(nextIdx);
-    } else {
-      pause();
-    }
-  }, [handleSleepTrackEnded, getNextIndex, playTrackAtIndex, pause]);
-
-  const handlePrev = useCallback(() => {
-    const prevIdx = getPrevIndex();
-    if (prevIdx !== null) {
-      playTrackAtIndex(prevIdx);
-    }
-  }, [getPrevIndex, playTrackAtIndex]);
-
-  // Assign track ended handler
-  handleTrackEndedRef.current = handleNext;
 
   const handleSelectTrack = useCallback(
     async (id: string) => {
@@ -1086,32 +1149,77 @@ export function App() {
   );
 
   return (
-    <div
-      className="grid grid-cols-[88px_1fr] grid-rows-[32px_1fr_88px] h-screen w-screen overflow-hidden bg-[#0B0B0C] text-[#F4F4F0] font-sans select-none relative"
-      style={
-        {
-          background: settings.dynamicLighting.enabled
-            ? 'radial-gradient(900px 520px at 65% 0%, color-mix(in srgb, var(--now) 18%, transparent), transparent 70%), var(--bg)'
-            : 'var(--bg)',
-          '--now': coverColors.primary || '#6B7F94',
-          '--now-dark': coverColors.dark || '#20262c',
-        } as React.CSSProperties
-      }
-    >
-      {/* Row 1: Custom Title Bar 32px (col-span-2) */}
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#0A0A0C] text-[#FFFFFF] font-sans select-none relative">
+      {/* Row 1: Custom Title Bar 32px */}
       <TitleBar />
+
+      {/* Row 2: Global Top Navbar */}
+      <TopBar
+        activeView={activeMainView}
+        onViewChange={(view) => {
+          if (view === 'library') {
+            setSearchQuery('');
+            setSelectedLibraryPlaylist(null);
+          }
+          setActiveMainView(view);
+        }}
+        ytSubTab={ytSubTab}
+        onYtSubTabChange={setYtSubTab}
+        searchQuery={activeMainView === 'ytmusic' ? ytSearchQuery : searchQuery}
+        onSearchChange={(q) => {
+          if (activeMainView === 'ytmusic') {
+            setYtSearchQuery(q);
+          } else {
+            setSearchQuery(q);
+          }
+        }}
+        onSearchSubmit={(query) => {
+          const trimmed = query.trim();
+          if (trimmed) {
+            setYtSearchQuery(trimmed);
+            setYtSubTab('search');
+            setActiveMainView('ytmusic');
+          }
+        }}
+        userProfile={userProfile}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        onOpenSettings={() => setIsSettingsModalOpen(true)}
+        onOpenEqualizer={() => setIsEqualizerOpen(true)}
+        onPlayTrack={handlePlayExternalTrack}
+        canGoBack={Boolean(
+          activeMainView === 'custom_playlist' ||
+          (activeMainView === 'library' && selectedLibraryPlaylist !== null)
+        )}
+        onHistoryBack={() => {
+          if (activeMainView === 'custom_playlist') {
+            setActiveMainView('library');
+            setSelectedLibraryPlaylist(null);
+          } else if (activeMainView === 'library' && selectedLibraryPlaylist !== null) {
+            setSelectedLibraryPlaylist(null);
+          }
+        }}
+        titleOverride={
+          activeMainView === 'custom_playlist'
+            ? activeCustomPlaylist?.name || 'Playlist'
+            : activeMainView === 'library' && selectedLibraryPlaylist === 'all'
+            ? 'Semua Lagu'
+            : activeMainView === 'library' && selectedLibraryPlaylist === 'offline'
+            ? 'Tersimpan Offline'
+            : undefined
+        }
+      />
 
       {/* Playback Error Toast Alert */}
       {playbackError && (
-        <div className="fixed top-12 right-5 z-50 flex items-center gap-3 bg-[#1F1F23] text-[#F4F4F0] px-4 py-3 rounded-[8px] shadow-2xl animate-in fade-in slide-in-from-top duration-200 max-w-md">
+        <div className="fixed top-16 right-5 z-50 flex items-center gap-3 bg-[#1F1F23] text-[#F4F4F0] px-4 py-3 rounded-xl shadow-2xl animate-in fade-in slide-in-from-top duration-200 max-w-md border border-white/10">
           <AlertCircle size={18} className="text-[#E07A7A] flex-shrink-0" />
           <div className="text-xs min-w-0 flex-1">
-            <p className="font-semibold text-[#F4F4F0]">Gagal Memutar Lagu</p>
-            <p className="text-[#8D8D93] text-[11px] truncate mt-0.5">{playbackError}</p>
+            <p className="font-semibold text-white">Gagal Memutar Lagu</p>
+            <p className="text-zinc-400 text-[11px] truncate mt-0.5">{playbackError}</p>
           </div>
           <button
             onClick={clearPlaybackError}
-            className="p-1.5 hover:bg-[#34343A] rounded-[6px] text-[#8D8D93] hover:text-[#F4F4F0] transition-colors flex-shrink-0 cursor-pointer"
+            className="p-1.5 hover:bg-white/10 rounded-lg text-zinc-400 hover:text-white transition-colors flex-shrink-0 cursor-pointer"
             title="Tutup Pesan"
           >
             <X size={15} />
@@ -1123,47 +1231,26 @@ export function App() {
       <audio ref={audioRefA} crossOrigin="anonymous" preload="auto" />
       <audio ref={audioRefB} crossOrigin="anonymous" preload="auto" />
 
-      {/* Col 1, Row 2: Sidebar Rail (88px wide fixed) */}
-      <Sidebar
-        currentFilter={filter}
-        onFilterChange={(newFilter) => {
-          setFilter(newFilter);
-          setSearchQuery('');
-          if (newFilter === 'offline') {
-            setActiveMainView('library');
-            setSelectedLibraryPlaylist('offline');
-          } else {
-            setSelectedLibraryPlaylist(null);
-          }
-        }}
-        tracks={tracks}
-        onOpenImportModal={openImportModalWithTab}
-        userProfile={userProfile}
-        onOpenAuthModal={() => setIsAuthModalOpen(true)}
-        onOpenSettings={() => setIsSettingsModalOpen(true)}
-        activeView={activeMainView}
-        onViewChange={(view) => {
-          if (view === 'library') {
+      {/* Canvas Body: Left Sidebar (Library/Playlists Panel) + Right Main Card */}
+      <div className="flex-1 flex gap-3 px-3 pt-2 pb-3 overflow-hidden relative min-h-0">
+        {/* Sidebar: Dedicated Library & Playlists Panel */}
+        <Sidebar
+          currentFilter={filter}
+          onFilterChange={(newFilter) => {
+            setFilter(newFilter);
             setSearchQuery('');
-            setSelectedLibraryPlaylist(null);
-          }
-          setActiveMainView(view);
-        }}
-        ytSubTab={ytSubTab}
-        onYtSubTabChange={setYtSubTab}
-        customPlaylists={customPlaylists}
-        activeCustomPlaylistId={activeCustomPlaylistId}
-        onSelectCustomPlaylist={handleSelectCustomPlaylist}
-        onOpenCreatePlaylist={() => handleOpenCreatePlaylistModal()}
-        onDeleteCustomPlaylist={handleDeleteCustomPlaylist}
-        onDownloadBatch={handleStartBatchDownload}
-        isQueueOpen={isQueueOpen}
-        onToggleQueue={() => setIsQueueOpen((prev) => !prev)}
-      />
-
-      {/* Col 2, Row 1: Main Content Container (TopBar + Scrollable Active View) */}
-      <div className="flex flex-col h-full overflow-hidden relative">
-        <TopBar
+            if (newFilter === 'offline') {
+              setActiveMainView('library');
+              setSelectedLibraryPlaylist('offline');
+            } else {
+              setSelectedLibraryPlaylist(null);
+            }
+          }}
+          tracks={tracks}
+          onOpenImportModal={openImportModalWithTab}
+          userProfile={userProfile}
+          onOpenAuthModal={() => setIsAuthModalOpen(true)}
+          onOpenSettings={() => setIsSettingsModalOpen(true)}
           activeView={activeMainView}
           onViewChange={(view) => {
             if (view === 'library') {
@@ -1173,50 +1260,21 @@ export function App() {
             setActiveMainView(view);
           }}
           ytSubTab={ytSubTab}
-          searchQuery={activeMainView === 'ytmusic' ? ytSearchQuery : searchQuery}
-          onSearchChange={(q) => {
-            if (activeMainView === 'ytmusic') {
-              setYtSearchQuery(q);
-            } else {
-              setSearchQuery(q);
-            }
-          }}
-          onSearchSubmit={(query) => {
-            const trimmed = query.trim();
-            if (trimmed) {
-              setYtSearchQuery(trimmed);
-              setYtSubTab('search');
-              setActiveMainView('ytmusic');
-            }
-          }}
-          userProfile={userProfile}
-          onOpenAuthModal={() => setIsAuthModalOpen(true)}
-          onPlayTrack={handlePlayExternalTrack}
-          canGoBack={Boolean(
-            activeMainView === 'custom_playlist' ||
-            (activeMainView === 'library' && selectedLibraryPlaylist !== null)
-          )}
-          onHistoryBack={() => {
-            if (activeMainView === 'custom_playlist') {
-              setActiveMainView('library');
-              setSelectedLibraryPlaylist(null);
-            } else if (activeMainView === 'library' && selectedLibraryPlaylist !== null) {
-              setSelectedLibraryPlaylist(null);
-            }
-          }}
-          titleOverride={
-            activeMainView === 'custom_playlist'
-              ? activeCustomPlaylist?.name || 'Playlist'
-              : activeMainView === 'library' && selectedLibraryPlaylist === 'all'
-              ? 'Semua Lagu'
-              : activeMainView === 'library' && selectedLibraryPlaylist === 'offline'
-              ? 'Tersimpan Offline'
-              : undefined
-          }
+          onYtSubTabChange={setYtSubTab}
+          customPlaylists={customPlaylists}
+          activeCustomPlaylistId={activeCustomPlaylistId}
+          onSelectCustomPlaylist={handleSelectCustomPlaylist}
+          onOpenCreatePlaylist={() => handleOpenCreatePlaylistModal()}
+          onDeleteCustomPlaylist={handleDeleteCustomPlaylist}
+          onDownloadBatch={handleStartBatchDownload}
+          isQueueOpen={isQueueOpen}
+          onToggleQueue={() => setIsQueueOpen((prev) => !prev)}
         />
 
-        <div className="flex flex-1 overflow-hidden relative">
-          <div className="flex-1 overflow-hidden relative flex flex-col">
+        {/* Main Content Island Card */}
+        <div className="flex-1 h-full rounded-[20px] bg-[#121215] border border-white/[0.08] shadow-2xl overflow-hidden flex flex-col relative min-w-0">
+          <div className="flex flex-1 overflow-hidden relative">
+            <div className="flex-1 overflow-hidden relative flex flex-col">
             {activeMainView === 'stage' ? (
               <LiveStageView
                 currentTrack={currentTrack}
@@ -1252,6 +1310,7 @@ export function App() {
                 onExternalSearchChange={setYtSearchQuery}
                 customPlaylists={customPlaylists}
                 libraryTracks={tracks}
+                listeningHistory={listeningHistory}
                 onSelectCustomPlaylist={handleSelectCustomPlaylist}
                 onViewChange={setActiveMainView}
                 dynamicLighting={settings.dynamicLighting}
@@ -1281,6 +1340,14 @@ export function App() {
                 onBackToLibrary={() => {
                   setActiveMainView('library');
                   setSelectedLibraryPlaylist(null);
+                }}
+                onNavigateToDiscover={() => {
+                  setActiveMainView('ytmusic');
+                  setYtSubTab('search');
+                }}
+                onNavigateToHome={() => {
+                  setActiveMainView('ytmusic');
+                  setYtSubTab('playlists');
                 }}
                 dynamicLighting={settings.dynamicLighting}
               />
@@ -1331,6 +1398,14 @@ export function App() {
                 currentFilter={selectedLibraryPlaylist === 'offline' ? 'offline' : filter}
                 onOpenAddToPlaylistModal={handleOpenAddToPlaylistModal}
                 onBackToLibrary={() => setSelectedLibraryPlaylist(null)}
+                onNavigateToDiscover={() => {
+                  setActiveMainView('ytmusic');
+                  setYtSubTab('search');
+                }}
+                onNavigateToHome={() => {
+                  setActiveMainView('ytmusic');
+                  setYtSubTab('playlists');
+                }}
                 dynamicLighting={settings.dynamicLighting}
               />
             )}
@@ -1352,13 +1427,30 @@ export function App() {
               onClose={() => setIsOverviewOpen(false)}
               trackCount={queue.length > 0 ? queue.length : tracks.length}
               dynamicLighting={settings.dynamicLighting}
+              upcomingTrack={(() => {
+                const nextIdx = getNextIndex();
+                return nextIdx !== null ? queue[nextIdx] : null;
+              })()}
+              onPlayUpcoming={handleNext}
+              onOpenQueue={() => setIsQueueOpen(true)}
+              liveDuration={duration}
+              onStartDownload={startDownload}
+              onOpenAddToPlaylistModal={() => {
+                if (currentTrack) handleOpenAddToPlaylistModal([currentTrack.id]);
+              }}
+              onNavigateToArtist={(artist) => {
+                setActiveMainView('ytmusic');
+                setYtSubTab('search');
+                setYtSearchQuery(artist);
+              }}
             />
           )}
         </div>
       </div>
+    </div>
 
-      {/* Row 2: PlayerBar spanning 2 columns */}
-      <div className="col-span-2 w-full h-[88px] z-30">
+      {/* Juxtopposed Floating Player Dock */}
+      <div className="fixed bottom-4 left-6 right-6 max-w-7xl mx-auto z-40 pointer-events-auto">
         <PlayerBar
           currentTrack={currentTrack}
           isPlaying={isPlaying}
@@ -1427,27 +1519,27 @@ export function App() {
 
       {/* Floating Batch Download Progress Pill */}
       {batchProgress && (
-        <div className="fixed bottom-24 right-6 z-40 bg-[#17171A] text-[#F4F4F0] px-4 py-3 rounded-[10px] shadow-2xl flex items-center gap-3.5 max-w-sm animate-in fade-in slide-in-from-bottom duration-200">
-          <div className="w-9 h-9 rounded-[8px] bg-[#1C1C1F] flex items-center justify-center flex-shrink-0 text-[#F4F4F0]">
-            <Download size={17} className={batchProgress.active ? 'animate-bounce text-[#B7C9A8]' : ''} />
+        <div className="fixed bottom-28 right-8 z-40 bg-[#18181D]/95 border border-white/[0.08] text-white px-4 py-3 rounded-[16px] shadow-2xl backdrop-blur-xl flex items-center gap-3.5 max-w-sm animate-in fade-in slide-in-from-bottom duration-200">
+          <div className="w-9 h-9 rounded-[10px] bg-white/10 flex items-center justify-center flex-shrink-0 text-white">
+            <Download size={17} className={batchProgress.active ? 'animate-bounce text-white' : ''} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between text-xs mb-1">
-              <span className="font-semibold text-[#F4F4F0] truncate">
+              <span className="font-semibold text-white truncate">
                 {batchProgress.active ? 'Mengunduh Playlist...' : 'Unduhan Selesai'}
               </span>
-              <span className="text-[#8D8D93] font-mono text-[11px] ml-2 flex-shrink-0">
+              <span className="text-zinc-400 font-mono text-[11px] ml-2 flex-shrink-0">
                 {batchProgress.completed}/{batchProgress.total} ({batchProgress.overallPercent}%)
               </span>
             </div>
-            <div className="w-full bg-[#2A2A2E] h-1.5 rounded-[2px] overflow-hidden">
+            <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
               <div
-                className="bg-[#B7C9A8] h-full transition-all duration-300 rounded-[2px]"
+                className="bg-blue-500 h-full transition-all duration-300 rounded-full"
                 style={{ width: `${batchProgress.overallPercent}%` }}
               />
             </div>
             {batchProgress.currentTitle && (
-              <p className="text-[10px] text-[#8D8D93] truncate mt-1">
+              <p className="text-[10px] text-zinc-400 truncate mt-1">
                 {batchProgress.currentTitle}
               </p>
             )}
@@ -1455,7 +1547,7 @@ export function App() {
           {batchProgress.active && (
             <button
               onClick={cancelBatchDownload}
-              className="p-1.5 hover:bg-[#1C1C1F] text-[#8D8D93] hover:text-[#F4F4F0] rounded-[6px] transition-colors flex-shrink-0 cursor-pointer"
+              className="p-1.5 hover:bg-white/10 text-zinc-400 hover:text-white rounded-[6px] transition-colors flex-shrink-0 cursor-pointer"
               title="Batalkan Unduhan"
             >
               <X size={15} />
@@ -1466,9 +1558,9 @@ export function App() {
 
       {/* Toast Alert */}
       {toastMessage && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-[#17171A] text-[#F4F4F0] px-5 py-2.5 rounded-[8px] shadow-2xl flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom duration-200 pointer-events-none">
-          <CheckCircle2 size={16} className="text-[#F4F4F0] flex-shrink-0" />
-          <span className="text-xs font-medium text-[#F4F4F0]">{toastMessage}</span>
+        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 bg-[#18181D]/95 border border-white/[0.08] text-white px-5 py-2.5 rounded-full shadow-2xl backdrop-blur-xl flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom duration-200 pointer-events-none">
+          <CheckCircle2 size={16} className="text-zinc-300 flex-shrink-0" />
+          <span className="text-xs font-semibold text-white">{toastMessage}</span>
         </div>
       )}
 

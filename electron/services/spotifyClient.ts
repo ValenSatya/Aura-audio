@@ -32,8 +32,8 @@ export class SpotifyClient {
     if (!inputUrl) return null;
     const clean = inputUrl.trim();
 
-    // Match web URL: https://open.spotify.com/{type}/{id}
-    const webMatch = clean.match(/(?:open\.spotify\.com\/(?:intl-[a-z]{2}\/)?)(playlist|album|track)\/([a-zA-Z0-9]+)/i);
+    // Match web URL: https://open.spotify.com/{intl-xx/}?{user/xyz/}?(playlist|album|track)/{id}
+    const webMatch = clean.match(/(?:open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(?:user\/[^\/]+\/)?)(playlist|album|track)\/([a-zA-Z0-9]+)/i);
     if (webMatch) {
       return {
         type: webMatch[1].toLowerCase() as any,
